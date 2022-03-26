@@ -18,14 +18,6 @@ const CityMaster = sequelize.define(table_name, {
         allowNull: false,
         defaultValue: 1
     },
-    createBy: {
-        type: Sequelize.BIGINT,
-        allowNull: false
-    },
-    updateBy: {
-        type: Sequelize.BIGINT,
-        allowNull: true
-    },
     createByIp: {
         type: Sequelize.STRING,
         allowNull: false

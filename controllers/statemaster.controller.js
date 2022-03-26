@@ -59,7 +59,6 @@ exports.getAllStates = async (req, res, next) => {
         }
         else {
             state_data = await StateMaster.findAll({
-                raw: true,
                 where: {
                     status: {
                         [Sequelize.Op.in]: [0, 1]
@@ -96,10 +95,9 @@ exports.getAllStates = async (req, res, next) => {
 exports.getStateMasterById = async (req, res, next) => {
     try {
         let state_data = await StateMaster.findOne({
-            raw: true,
             where: {
                 status: [0, 1],
-                stateId: req.params.id
+                stateMasterId: req.params.id
             },
             include: [{ all: true, nested: true }]
         });
@@ -128,7 +126,6 @@ exports.getStateMasterById = async (req, res, next) => {
 exports.getStateMasterByCountryId = async (req, res, next) => {
     try {
         let state_data = await StateMaster.findAll({
-            raw: true,
             where: {
                 status: [0, 1],
                 countryMasterId: req.params.id
@@ -154,12 +151,12 @@ exports.getStateMasterByCountryId = async (req, res, next) => {
 /**
  * updates state data
  * 
- * @body {stateId, stateName, stateCode, countryMasterId, updateByIp} req to update state data
+ * @body {stateMasterId, stateName, stateCode, countryMasterId, updateByIp} req to update state data
  */
 exports.updateStateMaster = async (req, res, next) => {
     try {
         let {
-            stateId,
+            stateMasterId,
             stateName,
             stateCode,
             countryMasterId,
@@ -172,10 +169,10 @@ exports.updateStateMaster = async (req, res, next) => {
             updateByIp
         }, {
             where: {
-                stateId: stateId
+                stateMasterId: stateMasterId
             }
         });
-        logger.info(`stateMaster data updated status: ${JSON.stringify(update_status)} for stateid ${stateId}`);
+        logger.info(`stateMaster data updated status: ${JSON.stringify(update_status)} for stateid ${stateMasterId}`);
         res.status(200)
             .json({ status: 200, message: message.resmessage.stateupdated, data: {} });
     } catch (err) {
@@ -190,19 +187,19 @@ exports.updateStateMaster = async (req, res, next) => {
 /**
  * delete state by id
  *
- * @body {stateId} to delete state
+ * @body {stateMasterId} to delete state
  */
 exports.deleteStateMaster = async (req, res, next) => {
     try {
         let {
-            stateId
+            stateMasterId
         } = await req.body;
         let delete_status = await StateMaster.update({
             status: 2
         }, {
-            where: { stateId: stateId }
+            where: { stateMasterId: stateMasterId }
         });
-        logger.info(`stateMaster deleted by id ${stateId} delete status: ${delete_status}`);
+        logger.info(`stateMaster deleted by id ${stateMasterId} delete status: ${delete_status}`);
         res.status(200)
             .json({ status: 200, message: message.resmessage.statedeleted });
     } catch (err) {
@@ -276,7 +273,6 @@ exports.postImportData = async (req, res, next) => {
     try {
         const file = req.file;
         let {
-            createBy,
             createByIp
         } = req.body;
 

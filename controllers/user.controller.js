@@ -1,32 +1,44 @@
 const Sequelize = require('sequelize');
 const logger = require('../config/logger');
 const message = require('../response_message/message');
+const bcrypt = require('bcrypt');
 const User = require('../models/user');
 
 /**
  * insert user data
  * 
- * @body {name, email, password, admin, createByIp} req to add user data
+ * @body {name, email, password, admin, mobileNumber, createByIp} req to add user data
  */
 exports.addUser = async (req, res, next) => {
     try {
+        const salt = await bcrypt.genSalt(10);
         let {
             name,
             email,
-            password,
             admin,
+            mobileNumber,
             createByIp
         } = await req.body;
-        let insert_status = await User.create({
-            name,
-            email,
-            password,
-            admin,
-            createByIp
-        })
-        logger.info(`user data inserted: ${JSON.stringify(req.body)}`);
-        res.status(200)
-            .json({ status: 200, message: message.resmessage.useradded, data: insert_status });
+        let mobile_number = await User.findAll({
+            where: { mobileNumber: mobileNumber, status: ['0', '1'] },
+        });
+        if (mobile_number.length > 0) {
+            res.status(200)
+                .json({ status: 401, message: message.resmessage.mobilealreadyexists, data: {} });
+        } else {
+            const password = bcrypt.hashSync(req.body.password, salt);
+            let insert_status = await User.create({
+                name,
+                email,
+                password,
+                admin,
+                mobileNumber,
+                createByIp
+            })
+            logger.info(`User data inserted: ${JSON.stringify(req.body)}`);
+            res.status(200)
+                .json({ status: 200, message: message.resmessage.useradded, data: insert_status });
+        }
     } catch (err) {
         if (!err.statusCode) {
             res.status(200)
@@ -58,7 +70,6 @@ exports.getAllUsers = async (req, res, next) => {
         }
         else {
             user_data = await User.findAll({
-                raw: true,
                 where: {
                     status: {
                         [Sequelize.Op.in]: [0, 1]
@@ -94,7 +105,6 @@ exports.getAllUsers = async (req, res, next) => {
 exports.getUserById = async (req, res, next) => {
     try {
         let user_data = await User.findOne({
-            raw: true,
             where: {
                 status: [0, 1],
                 userId: req.params.id
@@ -119,7 +129,7 @@ exports.getUserById = async (req, res, next) => {
 /**
  * updates user data
  * 
- * @body {userId, name, email, password, admin, updateByIp} req to update user data
+ * @body {userId, name, email, password, admin, mobileNumber, updateByIp} req to update user data
  */
 exports.updateUser = async (req, res, next) => {
     try {
@@ -129,6 +139,7 @@ exports.updateUser = async (req, res, next) => {
             email,
             password,
             admin,
+            mobileNumber,
             updateByIp
         } = await req.body;
         let update_status = await User.update({
@@ -136,13 +147,14 @@ exports.updateUser = async (req, res, next) => {
             email,
             password,
             admin,
+            mobileNumber,
             updateByIp
         }, {
             where: {
                 userId: userId
             }
         });
-        logger.info(`user data updated status: ${JSON.stringify(update_status)} for userid ${userId}`);
+        logger.info(`User data updated status: ${JSON.stringify(update_status)} for userid ${userId}`);
         res.status(200)
             .json({ status: 200, message: message.resmessage.userupdated, data: {} });
     } catch (err) {
@@ -169,7 +181,7 @@ exports.deleteUser = async (req, res, next) => {
         }, {
             where: { userId: userId }
         });
-        logger.info(`user deleted by id ${userId} delete status: ${delete_status}`);
+        logger.info(`User deleted by id ${userId} delete status: ${delete_status}`);
         res.status(200)
             .json({ status: 200, message: message.resmessage.userdeleted });
     } catch (err) {

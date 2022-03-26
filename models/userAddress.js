@@ -1,18 +1,22 @@
 const Sequelize = require('sequelize');
 const sequelize = require('../config/database');
-const table_name = 'user';
-const User = sequelize.define(table_name, {
-    userId: {
+const StateMaster = require('./stateMaster');
+const CountryMaster = require('./countryMaster');
+const CityMaster = require('./cityMaster');
+const User = require('./user');
+const table_name = 'userAddress';
+const UserAddress = sequelize.define(table_name, {
+    userAddressId: {
         type: Sequelize.INTEGER,
         autoIncrement: true,
         allowNull: false,
         primaryKey: true
     },
-    firstName: {
-        type: Sequelize.STRING,
+    userId: {
+        type: Sequelize.INTEGER,
         allowNull: false
     },
-    lastName: {
+    fullName: {
         type: Sequelize.STRING,
         allowNull: true
     },
@@ -20,17 +24,38 @@ const User = sequelize.define(table_name, {
         type: Sequelize.STRING,
         allowNull: false
     },
-    admin: {
+    pincode: {
         type: Sequelize.BIGINT,
         allowNull: false
     },
-    password: {
+    addressLine1: {
         type: Sequelize.STRING,
         allowNull: true
     },
-    email: {
+    addressLine2: {
         type: Sequelize.STRING,
         allowNull: true
+    },
+    cityMasterId: {
+        type: Sequelize.INTEGER,
+        allowNull: false
+    },
+    stateMasterId: {
+        type: Sequelize.INTEGER,
+        allowNull: false
+    },
+    countryMasterId: {
+        type: Sequelize.INTEGER,
+        allowNull: false
+    },
+    isDefault: {
+        type: Sequelize.BOOLEAN,
+        allowNull: false,
+        defaultValue: false
+    },
+    addressType: {
+        type: Sequelize.ENUM(['Home', 'Work', 'Other']),
+        allowNull: false
     },
     status: {
         type: Sequelize.INTEGER,
@@ -47,4 +72,9 @@ const User = sequelize.define(table_name, {
     },
 });
 
-module.exports = User;
+UserAddress.belongsTo(User, { as: "user", foreignKey: { name: "userId" } });
+UserAddress.belongsTo(CountryMaster, { as: "country", foreignKey: { name: "countryMasterId" } });
+UserAddress.belongsTo(StateMaster, { as: "state", foreignKey: { name: "stateMasterId" } });
+UserAddress.belongsTo(CityMaster, { as: "city", foreignKey: { name: "cityMasterId" } });
+
+module.exports = UserAddress;

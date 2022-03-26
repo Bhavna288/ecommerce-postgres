@@ -57,7 +57,6 @@ exports.getAllCities = async (req, res, next) => {
         }
         else {
             city_data = await CityMaster.findAll({
-                raw: true,
                 where: {
                     status: {
                         [Sequelize.Op.in]: [0, 1]
@@ -94,10 +93,9 @@ exports.getAllCities = async (req, res, next) => {
 exports.getCityMasterById = async (req, res, next) => {
     try {
         let city_data = await CityMaster.findOne({
-            raw: true,
             where: {
                 status: [0, 1],
-                cityId: req.params.id
+                cityMasterId: req.params.id
             },
             include: [{ all: true, nested: true }]
         });
@@ -126,7 +124,6 @@ exports.getCityMasterById = async (req, res, next) => {
 exports.getCityMasterByStateId = async (req, res, next) => {
     try {
         let city_data = await CityMaster.findAll({
-            raw: true,
             where: {
                 status: [0, 1],
                 stateMasterId: req.params.id
@@ -152,12 +149,12 @@ exports.getCityMasterByStateId = async (req, res, next) => {
 /**
  * updates city data
  * 
- * @body {cityId, cityName, stateMasterId, updateByIp} req to update city data
+ * @body {cityMasterId, cityName, stateMasterId, updateByIp} req to update city data
  */
 exports.updateCityMaster = async (req, res, next) => {
     try {
         let {
-            cityId,
+            cityMasterId,
             cityName,
             stateMasterId,
             updateByIp
@@ -168,10 +165,10 @@ exports.updateCityMaster = async (req, res, next) => {
             updateByIp
         }, {
             where: {
-                cityId: cityId
+                cityMasterId: cityMasterId
             }
         });
-        logger.info(`cityMaster data updated status: ${JSON.stringify(update_status)} for cityid ${cityId}`);
+        logger.info(`cityMaster data updated status: ${JSON.stringify(update_status)} for cityid ${cityMasterId}`);
         res.status(200)
             .json({ status: 200, message: message.resmessage.cityupdated, data: {} });
     } catch (err) {
@@ -186,19 +183,19 @@ exports.updateCityMaster = async (req, res, next) => {
 /**
  * delete city by id
  *
- * @body {cityId} to delete city
+ * @body {cityMasterId} to delete city
  */
 exports.deleteCityMaster = async (req, res, next) => {
     try {
         let {
-            cityId
+            cityMasterId
         } = await req.body;
         let delete_status = await CityMaster.update({
             status: 2
         }, {
-            where: { cityId: cityId }
+            where: { cityMasterId: cityMasterId }
         });
-        logger.info(`cityMaster deleted by id ${cityId} delete status: ${delete_status}`);
+        logger.info(`cityMaster deleted by id ${cityMasterId} delete status: ${delete_status}`);
         res.status(200)
             .json({ status: 200, message: message.resmessage.citydeleted });
     } catch (err) {
@@ -213,28 +210,28 @@ exports.deleteCityMaster = async (req, res, next) => {
 /**
  * change status of city by id
  *
- * @body {cityId, status} to change status
+ * @body {cityMasterId, status} to change status
  */
 exports.changeStatus = async (req, res, next) => {
     try {
         let {
-            cityId,
+            cityMasterId,
             status
         } = await req.body;
         let change_status = await CityMaster.update({
             status
         }, {
             where: {
-                cityId: cityId,
+                cityMasterId: cityMasterId,
                 status: [0, 1]
             }
         });
         if (change_status != 0) {
-            logger.info(`cityMaster status changed to ${status} for city ${cityId}`);
+            logger.info(`cityMaster status changed to ${status} for city ${cityMasterId}`);
             res.status(200)
                 .json({ status: 200, message: message.resmessage.citystatus });
         } else {
-            logger.info(`cityMaster status for city ${cityId} not changed`);
+            logger.info(`cityMaster status for city ${cityMasterId} not changed`);
             res.status(200)
                 .json({ status: 200, message: message.resmessage.deletedrecord });
         }

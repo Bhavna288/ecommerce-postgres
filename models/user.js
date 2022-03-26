@@ -22,7 +22,12 @@ const User = sequelize.define(table_name, {
     },
     email: {
         type: Sequelize.STRING,
-        allowNull: true
+        allowNull: true,
+        isEmail: true
+    },
+    mobileNumber: {
+        type: Sequelize.BIGINT,
+        allowNull: false
     },
     status: {
         type: Sequelize.INTEGER,
