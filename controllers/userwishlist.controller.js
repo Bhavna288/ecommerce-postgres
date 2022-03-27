@@ -2,6 +2,8 @@ const Sequelize = require('sequelize');
 const logger = require('../config/logger');
 const message = require('../response_message/message');
 const UserWishlist = require('../models/userWishlist');
+const User = require('../models/user');
+const Product = require('../models/product');
 
 /**
  * insert userwishlist data
@@ -40,11 +42,36 @@ exports.addUserWishlist = async (req, res, next) => {
 
 exports.getAllUserWishlist = async (req, res, next) => {
     try {
-        let { limit, page } = await req.body;
+        let { limit, page, searchQuery } = await req.body;
         let offset = (page - 1) * limit;
-        let user_cart_data = [];
-        if (limit == "" && page == "") {
-            user_cart_data = await UserWishlist.findAll({
+        let user_wishlist_data = [], totalcount;
+        if (searchQuery) {
+            user_wishlist_data = await UserWishlist.findAll({
+                where: {
+                    [Sequelize.Op.or]: [
+                        { '$product.name$': { [Sequelize.Op.iLike]: '%' + searchQuery + '%' } },
+                        { '$product.description$': { [Sequelize.Op.iLike]: '%' + searchQuery + '%' } },
+                        { '$product.SKU$': { [Sequelize.Op.iLike]: '%' + searchQuery + '%' } },
+                        { '$product.category.name$': { [Sequelize.Op.iLike]: '%' + searchQuery + '%' } },
+                        { '$product.category.description$': { [Sequelize.Op.iLike]: '%' + searchQuery + '%' } },
+                        { '$product.discount.name$': { [Sequelize.Op.iLike]: '%' + searchQuery + '%' } },
+                        { '$product.discount.description$': { [Sequelize.Op.iLike]: '%' + searchQuery + '%' } }
+                    ],
+                    status: [0, 1]
+                },
+                include: [{
+                    model: User,
+                    as: 'user',
+                    include: [{ all: true, nested: true }]
+                }, {
+                    model: Product,
+                    as: 'product',
+                    include: [{ all: true, nested: true }]
+                }]
+            });
+            totalcount = user_wishlist_data.length;
+        } else if (limit == "" && page == "") {
+            user_wishlist_data = await UserWishlist.findAll({
                 where: {
                     status: {
                         [Sequelize.Op.in]: [0, 1]
@@ -52,9 +79,12 @@ exports.getAllUserWishlist = async (req, res, next) => {
                 },
                 include: [{ all: true, nested: true }]
             });
+            totalcount = await UserWishlist.count({
+                where: { status: ['0', '1'] },
+            });
         }
         else {
-            user_cart_data = await UserWishlist.findAll({
+            user_wishlist_data = await UserWishlist.findAll({
 
                 where: {
                     status: {
@@ -65,14 +95,14 @@ exports.getAllUserWishlist = async (req, res, next) => {
                 offset: offset,
                 include: [{ all: true, nested: true }]
             });
-
+            totalcount = await UserWishlist.count({
+                where: { status: ['0', '1'] },
+            });
         }
-        let totalcount = await UserWishlist.count({
-            where: { status: ['0', '1'] },
-        });
-        logger.info(`UserWishlist get data ${JSON.stringify(user_cart_data)} `);
+
+        logger.info(`UserWishlist get data ${JSON.stringify(user_wishlist_data)} `);
         res.status(200)
-            .json({ status: 200, data: user_cart_data, totalcount: totalcount });
+            .json({ status: 200, data: user_wishlist_data, totalcount: totalcount });
     } catch (err) {
         if (!err.statusCode) {
             res.status(200)
@@ -90,17 +120,17 @@ exports.getAllUserWishlist = async (req, res, next) => {
 
 exports.getUserWishlistById = async (req, res, next) => {
     try {
-        let user_cart_data = await UserWishlist.findOne({
+        let user_wishlist_data = await UserWishlist.findOne({
             where: {
                 status: [0, 1],
                 userWishlistId: req.params.id
             },
             include: [{ all: true, nested: true }]
         });
-        logger.info(`UserWishlist get data by id ${req.params.id} results: ${JSON.stringify(user_cart_data)} `);
-        if (user_cart_data)
+        logger.info(`UserWishlist get data by id ${req.params.id} results: ${JSON.stringify(user_wishlist_data)} `);
+        if (user_wishlist_data)
             res.status(200)
-                .json({ status: 200, data: user_cart_data });
+                .json({ status: 200, data: user_wishlist_data });
         else
             res.status(200)
                 .json({ status: 200, data: {}, message: message.resmessage.deletedrecord });
@@ -116,22 +146,51 @@ exports.getUserWishlistById = async (req, res, next) => {
 /**
  * returns userwishlist data by user id
  * 
- * @param {id} req to get userwishlist data by user id
+ * @body {userId, searchQuery} req to get userwishlist data by user id
  */
 
 exports.getUserWishlistByUserId = async (req, res, next) => {
     try {
-        let user_cart_data = await UserWishlist.findAll({
-            where: {
-                status: [0, 1],
-                userId: req.params.id
-            },
-            include: [{ all: true, nested: true }]
-        });
-        logger.info(`UserWishlist get data by user id ${req.params.id} results: ${JSON.stringify(user_cart_data)} `);
-        if (user_cart_data)
+        let { userId, searchQuery } = req.body;
+        let user_wishlist_data = [];
+        if (searchQuery) {
+            user_wishlist_data = await UserWishlist.findAll({
+                where: {
+                    [Sequelize.Op.or]: [
+                        { '$product.name$': { [Sequelize.Op.iLike]: '%' + searchQuery + '%' } },
+                        { '$product.description$': { [Sequelize.Op.iLike]: '%' + searchQuery + '%' } },
+                        { '$product.SKU$': { [Sequelize.Op.iLike]: '%' + searchQuery + '%' } },
+                        { '$product.category.name$': { [Sequelize.Op.iLike]: '%' + searchQuery + '%' } },
+                        { '$product.category.description$': { [Sequelize.Op.iLike]: '%' + searchQuery + '%' } },
+                        { '$product.discount.name$': { [Sequelize.Op.iLike]: '%' + searchQuery + '%' } },
+                        { '$product.discount.description$': { [Sequelize.Op.iLike]: '%' + searchQuery + '%' } }
+                    ],
+                    userId: userId,
+                    status: [0, 1]
+                },
+                include: [{
+                    model: User,
+                    as: 'user',
+                    include: [{ all: true, nested: true }]
+                }, {
+                    model: Product,
+                    as: 'product',
+                    include: [{ all: true, nested: true }]
+                }]
+            });
+        } else {
+            user_wishlist_data = await UserWishlist.findAll({
+                where: {
+                    status: [0, 1],
+                    userId: userId
+                },
+                include: [{ all: true, nested: true }]
+            });
+        }
+        logger.info(`UserWishlist get data by user id ${req.params.id} results: ${JSON.stringify(user_wishlist_data)} `);
+        if (user_wishlist_data)
             res.status(200)
-                .json({ status: 200, data: user_cart_data });
+                .json({ status: 200, data: user_wishlist_data });
         else
             res.status(200)
                 .json({ status: 200, data: {}, message: message.resmessage.deletedrecord });

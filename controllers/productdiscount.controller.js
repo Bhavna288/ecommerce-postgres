@@ -1,5 +1,6 @@
 const Sequelize = require('sequelize');
 const logger = require('../config/logger');
+const sequelize = require('../config/database');
 const message = require('../response_message/message');
 const ProductDiscount = require('../models/productDiscount');
 
@@ -42,16 +43,35 @@ exports.addProductDiscount = async (req, res, next) => {
 
 exports.getAllProductDiscount = async (req, res, next) => {
     try {
-        let { limit, page } = await req.body;
+        let { limit, page, searchQuery } = await req.body;
         let offset = (page - 1) * limit;
-        let product_discount = [];
-        if (limit == "" && page == "") {
+        let product_discount = [], totalcount;
+        if (searchQuery) {
+            product_discount = await ProductDiscount.findAll({
+                where: {
+                    [Sequelize.Op.or]: [
+                        { name: { [Sequelize.Op.iLike]: '%' + searchQuery + '%' } },
+                        { description: { [Sequelize.Op.iLike]: '%' + searchQuery + '%' } },
+                        sequelize.where(
+                            sequelize.cast(sequelize.col('productDiscount.percentage'), 'varchar'),
+                            { [Sequelize.Op.iLike]: `%${searchQuery}%` }
+                        )
+                    ],
+                    status: [0, 1]
+                }
+            });
+            totalcount = product_discount.length;
+        } else if (limit == "" && page == "") {
             product_discount = await ProductDiscount.findAll({
                 where: {
                     status: {
                         [Sequelize.Op.in]: [0, 1]
                     }
                 }
+            });
+            totalcount = await ProductDiscount.count({
+                raw: true,
+                where: { status: ['0', '1'] },
             });
         }
         else {
@@ -64,12 +84,12 @@ exports.getAllProductDiscount = async (req, res, next) => {
                 limit: limit,
                 offset: offset
             });
-
+            totalcount = await ProductDiscount.count({
+                raw: true,
+                where: { status: ['0', '1'] },
+            });
         }
-        let totalcount = await ProductDiscount.count({
-            raw: true,
-            where: { status: ['0', '1'] },
-        });
+
         logger.info(`ProductDiscount get data ${JSON.stringify(product_discount)} `);
         res.status(200)
             .json({ status: 200, data: product_discount, totalcount: totalcount });

@@ -1,7 +1,11 @@
 const Sequelize = require('sequelize');
 const logger = require('../config/logger');
+const sequelize = require('../config/database');
 const message = require('../response_message/message');
 const UserCart = require('../models/userCart');
+const User = require('../models/user');
+const Product = require('../models/product');
+const ProductDiscount = require('../models/productDiscount');
 
 /**
  * insert usercart data
@@ -42,10 +46,39 @@ exports.addUserCart = async (req, res, next) => {
 
 exports.getAllUserCart = async (req, res, next) => {
     try {
-        let { limit, page } = await req.body;
+        let { limit, page, searchQuery } = await req.body;
         let offset = (page - 1) * limit;
-        let user_cart_data = [];
-        if (limit == "" && page == "") {
+        let user_cart_data = [], totalcount;
+        if (searchQuery) {
+            user_cart_data = await UserCart.findAll({
+                where: {
+                    [Sequelize.Op.or]: [
+                        { '$product.name$': { [Sequelize.Op.iLike]: '%' + searchQuery + '%' } },
+                        { '$product.description$': { [Sequelize.Op.iLike]: '%' + searchQuery + '%' } },
+                        { '$product.SKU$': { [Sequelize.Op.iLike]: '%' + searchQuery + '%' } },
+                        { '$product.category.name$': { [Sequelize.Op.iLike]: '%' + searchQuery + '%' } },
+                        { '$product.category.name$': { [Sequelize.Op.iLike]: '%' + searchQuery + '%' } },
+                        { '$product.discount.name$': { [Sequelize.Op.iLike]: '%' + searchQuery + '%' } },
+                        { '$product.discount.description$': { [Sequelize.Op.iLike]: '%' + searchQuery + '%' } },
+                        sequelize.where(
+                            sequelize.cast(sequelize.col('userCart.quantity'), 'varchar'),
+                            { [Sequelize.Op.iLike]: `%${searchQuery}%` }
+                        )
+                    ],
+                    status: [0, 1]
+                },
+                include: [{
+                    model: User,
+                    as: 'user',
+                    include: [{ all: true, nested: true }]
+                }, {
+                    model: Product,
+                    as: 'product',
+                    include: [{ all: true, nested: true }]
+                }]
+            });
+            totalcount = user_cart_data.length;
+        } else if (limit == "" && page == "") {
             user_cart_data = await UserCart.findAll({
                 where: {
                     status: {
@@ -53,6 +86,9 @@ exports.getAllUserCart = async (req, res, next) => {
                     }
                 },
                 include: [{ all: true, nested: true }]
+            });
+            totalcount = await UserCart.count({
+                where: { status: ['0', '1'] },
             });
         }
         else {
@@ -67,11 +103,11 @@ exports.getAllUserCart = async (req, res, next) => {
                 offset: offset,
                 include: [{ all: true, nested: true }]
             });
-
+            totalcount = await UserCart.count({
+                where: { status: ['0', '1'] },
+            });
         }
-        let totalcount = await UserCart.count({
-            where: { status: ['0', '1'] },
-        });
+
         logger.info(`UserCart get data ${JSON.stringify(user_cart_data)} `);
         res.status(200)
             .json({ status: 200, data: user_cart_data, totalcount: totalcount });
@@ -118,18 +154,51 @@ exports.getUserCartById = async (req, res, next) => {
 /**
  * returns usercart data by user id
  * 
- * @param {id} req to get usercart data by user id
+ * @body {id, searchQuery} req to get usercart data by user id
  */
 
 exports.getUserCartByUserId = async (req, res, next) => {
     try {
-        let user_cart_data = await UserCart.findAll({
-            where: {
-                status: [0, 1],
-                userId: req.params.id
-            },
-            include: [{ all: true, nested: true }]
-        });
+        let { userId, searchQuery } = req.body;
+        let user_cart_data = [];
+        if (searchQuery) {
+            user_cart_data = await UserCart.findAll({
+                where: {
+                    [Sequelize.Op.or]: [
+                        { '$product.name$': { [Sequelize.Op.iLike]: '%' + searchQuery + '%' } },
+                        { '$product.description$': { [Sequelize.Op.iLike]: '%' + searchQuery + '%' } },
+                        { '$product.SKU$': { [Sequelize.Op.iLike]: '%' + searchQuery + '%' } },
+                        { '$product.category.name$': { [Sequelize.Op.iLike]: '%' + searchQuery + '%' } },
+                        { '$product.category.name$': { [Sequelize.Op.iLike]: '%' + searchQuery + '%' } },
+                        { '$product.discount.name$': { [Sequelize.Op.iLike]: '%' + searchQuery + '%' } },
+                        { '$product.discount.description$': { [Sequelize.Op.iLike]: '%' + searchQuery + '%' } },
+                        sequelize.where(
+                            sequelize.cast(sequelize.col('userCart.quantity'), 'varchar'),
+                            { [Sequelize.Op.iLike]: `%${searchQuery}%` }
+                        )
+                    ],
+                    userId: userId,
+                    status: [0, 1]
+                },
+                include: [{
+                    model: User,
+                    as: 'user',
+                    include: [{ all: true, nested: true }]
+                }, {
+                    model: Product,
+                    as: 'product',
+                    include: [{ all: true, nested: true }]
+                }]
+            });
+        } else {
+            user_cart_data = await UserCart.findAll({
+                where: {
+                    status: [0, 1],
+                    userId: userId
+                },
+                include: [{ all: true, nested: true }]
+            });
+        }
         logger.info(`UserCart get data by user id ${req.params.id} results: ${JSON.stringify(user_cart_data)} `);
         if (user_cart_data)
             res.status(200)

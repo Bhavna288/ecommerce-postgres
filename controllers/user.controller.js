@@ -11,7 +11,6 @@ const User = require('../models/user');
  */
 exports.addUser = async (req, res, next) => {
     try {
-        const salt = await bcrypt.genSalt(10);
         let {
             name,
             email,
@@ -56,16 +55,32 @@ exports.addUser = async (req, res, next) => {
 
 exports.getAllUsers = async (req, res, next) => {
     try {
-        let { limit, page } = await req.body;
+        let { limit, page, searchQuery } = await req.body;
         let offset = (page - 1) * limit;
-        let user_data = [];
-        if (limit == "" && page == "") {
+        let user_data = [], totalcount;
+        if (searchQuery) {
+            user_data = await User.findAll({
+                where: {
+                    [Sequelize.Op.or]: [
+                        { name: { [Sequelize.Op.iLike]: '%' + searchQuery + '%' } },
+                        { email: { [Sequelize.Op.iLike]: '%' + searchQuery + '%' } },
+                        { mobileNumber: { [Sequelize.Op.iLike]: '%' + searchQuery + '%' } }
+                    ],
+                    status: [0, 1]
+                }
+            });
+            totalcount = user_data.length;
+        } else if (limit == "" && page == "") {
             user_data = await User.findAll({
                 where: {
                     status: {
                         [Sequelize.Op.in]: [0, 1]
                     }
                 }
+            });
+            totalcount = await User.count({
+                raw: true,
+                where: { status: ['0', '1'] },
             });
         }
         else {
@@ -78,12 +93,12 @@ exports.getAllUsers = async (req, res, next) => {
                 limit: limit,
                 offset: offset
             });
-
+            totalcount = await User.count({
+                raw: true,
+                where: { status: ['0', '1'] },
+            });
         }
-        let totalcount = await User.count({
-            raw: true,
-            where: { status: ['0', '1'] },
-        });
+
         logger.info(`User get data ${JSON.stringify(user_data)} `);
         res.status(200)
             .json({ status: 200, data: user_data, totalcount: totalcount });
@@ -133,30 +148,43 @@ exports.getUserById = async (req, res, next) => {
  */
 exports.updateUser = async (req, res, next) => {
     try {
+        const salt = await bcrypt.genSalt(10);
         let {
             userId,
             name,
             email,
-            password,
             admin,
             mobileNumber,
             updateByIp
         } = await req.body;
-        let update_status = await User.update({
-            name,
-            email,
-            password,
-            admin,
-            mobileNumber,
-            updateByIp
-        }, {
+        let mobile_number = await User.findAll({
             where: {
-                userId: userId
-            }
+                mobileNumber: mobileNumber,
+                status: ['0', '1'],
+                userId: { [Sequelize.Op.ne]: userId }
+            },
         });
-        logger.info(`User data updated status: ${JSON.stringify(update_status)} for userid ${userId}`);
-        res.status(200)
-            .json({ status: 200, message: message.resmessage.userupdated, data: {} });
+        if (mobile_number.length > 0) {
+            res.status(200)
+                .json({ status: 401, message: message.resmessage.mobilealreadyexists, data: {} });
+        } else {
+            const password = bcrypt.hashSync(req.body.password, salt);
+            let update_status = await User.update({
+                name,
+                email,
+                password,
+                admin,
+                mobileNumber,
+                updateByIp
+            }, {
+                where: {
+                    userId: userId
+                }
+            });
+            logger.info(`User data updated status: ${JSON.stringify(update_status)} for userid ${userId}`);
+            res.status(200)
+                .json({ status: 200, message: message.resmessage.userupdated, data: {} });
+        }
     } catch (err) {
         if (!err.statusCode) {
             res.status(200)

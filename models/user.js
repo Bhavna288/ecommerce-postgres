@@ -13,7 +13,7 @@ const User = sequelize.define(table_name, {
         allowNull: false
     },
     admin: {
-        type: Sequelize.BIGINT,
+        type: Sequelize.BOOLEAN,
         allowNull: false
     },
     password: {
@@ -26,7 +26,7 @@ const User = sequelize.define(table_name, {
         isEmail: true
     },
     mobileNumber: {
-        type: Sequelize.BIGINT,
+        type: Sequelize.STRING,
         allowNull: false
     },
     status: {

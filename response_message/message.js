@@ -40,6 +40,7 @@ exports.resmessage = {
     orderadded: "Order added successfully.",
     orderupdated: "Order updated successfully.",
     orderstatus: "Order status changed successfully.",
+    orderdeliverystatus: "Order delivery status changed successfully.",
     orderdeleted: "Order deleted successfully.",
     orderfailed: "Order failed. No items in the cart.",
     orderitemsadded: "Order items added successfully.",

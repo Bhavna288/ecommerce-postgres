@@ -2,6 +2,9 @@ const Sequelize = require('sequelize');
 const logger = require('../config/logger');
 const message = require('../response_message/message');
 const UserAddress = require('../models/userAddress');
+const CityMaster = require('../models/cityMaster');
+const StateMaster = require('../models/stateMaster');
+const CountryMaster = require('../models/countryMaster');
 
 /**
  * insert useraddress data
@@ -69,10 +72,40 @@ exports.addUserAddress = async (req, res, next) => {
 
 exports.getAllUserAddress = async (req, res, next) => {
     try {
-        let { limit, page } = await req.body;
+        let { limit, page, searchQuery } = await req.body;
         let offset = (page - 1) * limit;
-        let user_address_data = [];
-        if (limit == "" && page == "") {
+        let user_address_data = [], totalcount;
+        if (searchQuery) {
+            user_address_data = await UserAddress.findAll({
+                where: {
+                    [Sequelize.Op.or]: [
+                        { fullName: { [Sequelize.Op.iLike]: '%' + searchQuery + '%' } },
+                        { pincode: { [Sequelize.Op.iLike]: '%' + searchQuery + '%' } },
+                        { addressLine1: { [Sequelize.Op.iLike]: '%' + searchQuery + '%' } },
+                        { addressLine2: { [Sequelize.Op.iLike]: '%' + searchQuery + '%' } },
+                        { mobileNumber: { [Sequelize.Op.iLike]: '%' + searchQuery + '%' } },
+                        { '$city.cityName$': { [Sequelize.Op.iLike]: '%' + searchQuery + '%' } },
+                        { '$state.stateName$': { [Sequelize.Op.iLike]: '%' + searchQuery + '%' } },
+                        { '$country.countryName$': { [Sequelize.Op.iLike]: '%' + searchQuery + '%' } }
+                    ],
+                    status: [0, 1]
+                },
+                include: [{
+                    model: CityMaster,
+                    as: 'city',
+                    include: [{ all: true, nested: true }]
+                }, {
+                    model: StateMaster,
+                    as: 'state',
+                    include: [{ all: true, nested: true }]
+                }, {
+                    model: CountryMaster,
+                    as: 'country',
+                    include: [{ all: true, nested: true }]
+                }]
+            });
+            totalcount = user_address_data.length;
+        } else if (limit == "" && page == "") {
             user_address_data = await UserAddress.findAll({
                 where: {
                     status: {
@@ -80,6 +113,9 @@ exports.getAllUserAddress = async (req, res, next) => {
                     }
                 },
                 include: [{ all: true, nested: true }]
+            });
+            totalcount = await UserAddress.count({
+                where: { status: ['0', '1'] },
             });
         }
         else {
@@ -94,11 +130,11 @@ exports.getAllUserAddress = async (req, res, next) => {
                 offset: offset,
                 include: [{ all: true, nested: true }]
             });
-
+            totalcount = await UserAddress.count({
+                where: { status: ['0', '1'] },
+            });
         }
-        let totalcount = await UserAddress.count({
-            where: { status: ['0', '1'] },
-        });
+
         logger.info(`UserAddress get data ${JSON.stringify(user_address_data)} `);
         res.status(200)
             .json({ status: 200, data: user_address_data, totalcount: totalcount });
@@ -145,18 +181,52 @@ exports.getUserAddressById = async (req, res, next) => {
 /**
  * returns useraddress data by user id
  * 
- * @param {id} req to get useraddress data by user id
+ * @body {userId, searchQuery} req to get useraddress data by user id
  */
 
 exports.getUserAddressByUserId = async (req, res, next) => {
     try {
-        let user_address_data = await UserAddress.findAll({
-            where: {
-                status: [0, 1],
-                userId: req.params.id
-            },
-            include: [{ all: true, nested: true }]
-        });
+        let { searchQuery, userId } = req.body;
+        let user_address_data = [];
+        if (searchQuery) {
+            user_address_data = await UserAddress.findAll({
+                where: {
+                    [Sequelize.Op.or]: [
+                        { fullName: { [Sequelize.Op.iLike]: '%' + searchQuery + '%' } },
+                        { pincode: { [Sequelize.Op.iLike]: '%' + searchQuery + '%' } },
+                        { addressLine1: { [Sequelize.Op.iLike]: '%' + searchQuery + '%' } },
+                        { addressLine2: { [Sequelize.Op.iLike]: '%' + searchQuery + '%' } },
+                        { mobileNumber: { [Sequelize.Op.iLike]: '%' + searchQuery + '%' } },
+                        { '$city.cityName$': { [Sequelize.Op.iLike]: '%' + searchQuery + '%' } },
+                        { '$state.stateName$': { [Sequelize.Op.iLike]: '%' + searchQuery + '%' } },
+                        { '$country.countryName$': { [Sequelize.Op.iLike]: '%' + searchQuery + '%' } }
+                    ],
+                    userId: userId,
+                    status: [0, 1]
+                },
+                include: [{
+                    model: CityMaster,
+                    as: 'city',
+                    include: [{ all: true, nested: true }]
+                }, {
+                    model: StateMaster,
+                    as: 'state',
+                    include: [{ all: true, nested: true }]
+                }, {
+                    model: CountryMaster,
+                    as: 'country',
+                    include: [{ all: true, nested: true }]
+                }]
+            });
+        } else {
+            user_address_data = await UserAddress.findAll({
+                where: {
+                    status: [0, 1],
+                    userId: userId
+                },
+                include: [{ all: true, nested: true }]
+            });
+        }
         logger.info(`UserAddress get data by user id ${req.params.id} results: ${JSON.stringify(user_address_data)} `);
         if (user_address_data)
             res.status(200)

@@ -1,7 +1,10 @@
 const Sequelize = require('sequelize');
 const logger = require('../config/logger');
+const sequelize = require('../config/database');
 const message = require('../response_message/message');
 const Product = require('../models/product');
+const ProductDiscount = require('../models/productDiscount');
+const ProductCategory = require('../models/productCategory');
 
 /**
  * insert product data
@@ -58,10 +61,49 @@ exports.addProduct = async (req, res, next) => {
 
 exports.getAllProducts = async (req, res, next) => {
     try {
-        let { limit, page } = await req.body;
+        let { limit, page, searchQuery } = await req.body;
         let offset = (page - 1) * limit;
-        let product_data = [];
-        if (limit == "" && page == "") {
+        let product_data = [], totalcount;
+        if (searchQuery) {
+            product_data = await Product.findAll({
+                where: {
+                    [Sequelize.Op.or]: [
+                        { name: { [Sequelize.Op.iLike]: '%' + searchQuery + '%' } },
+                        { description: { [Sequelize.Op.iLike]: '%' + searchQuery + '%' } },
+                        { SKU: { [Sequelize.Op.iLike]: '%' + searchQuery + '%' } },
+                        { '$category.name$': { [Sequelize.Op.iLike]: '%' + searchQuery + '%' } },
+                        { '$category.description$': { [Sequelize.Op.iLike]: '%' + searchQuery + '%' } },
+                        { '$discount.name$': { [Sequelize.Op.iLike]: '%' + searchQuery + '%' } },
+                        { '$discount.description$': { [Sequelize.Op.iLike]: '%' + searchQuery + '%' } },
+                        sequelize.where(
+                            sequelize.cast(sequelize.col('discount.percentage'), 'varchar'),
+                            { [Sequelize.Op.iLike]: `%${searchQuery}%` }
+                        ),
+                        sequelize.where(
+                            sequelize.cast(sequelize.col('product.deliveryDays'), 'varchar'),
+                            { [Sequelize.Op.iLike]: `%${searchQuery}%` }
+                        ),
+                        sequelize.where(
+                            sequelize.cast(sequelize.col('product.quantity'), 'varchar'),
+                            { [Sequelize.Op.iLike]: `%${searchQuery}%` }
+                        ),
+                        sequelize.where(
+                            sequelize.cast(sequelize.col('product.price'), 'varchar'),
+                            { [Sequelize.Op.iLike]: `%${searchQuery}%` }
+                        )
+                    ],
+                    status: [0, 1]
+                },
+                include: [{
+                    model: ProductCategory,
+                    as: 'category'
+                }, {
+                    model: ProductDiscount,
+                    as: 'discount'
+                }]
+            });
+            totalcount = product_data.length;
+        } else if (limit == "" && page == "") {
             product_data = await Product.findAll({
                 where: {
                     status: {
@@ -69,6 +111,10 @@ exports.getAllProducts = async (req, res, next) => {
                     }
                 },
                 include: [{ all: true, nested: true }]
+            });
+            totalcount = await Product.count({
+                raw: true,
+                where: { status: ['0', '1'] },
             });
         }
         else {
@@ -82,12 +128,12 @@ exports.getAllProducts = async (req, res, next) => {
                 offset: offset,
                 include: [{ all: true, nested: true }]
             });
-
+            totalcount = await Product.count({
+                raw: true,
+                where: { status: ['0', '1'] },
+            });
         }
-        let totalcount = await Product.count({
-            raw: true,
-            where: { status: ['0', '1'] },
-        });
+
         logger.info(`Product get data ${JSON.stringify(product_data)} `);
         res.status(200)
             .json({ status: 200, data: product_data, totalcount: totalcount });

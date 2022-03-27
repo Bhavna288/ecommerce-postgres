@@ -40,16 +40,31 @@ exports.addProductCategory = async (req, res, next) => {
 
 exports.getAllProductCategories = async (req, res, next) => {
     try {
-        let { limit, page } = await req.body;
+        let { limit, page, searchQuery } = await req.body;
         let offset = (page - 1) * limit;
-        let product_category = [];
-        if (limit == "" && page == "") {
+        let product_category = [], totalcount;
+        if (searchQuery) {
+            product_category = await ProductCategory.findAll({
+                where: {
+                    [Sequelize.Op.or]: [
+                        { name: { [Sequelize.Op.iLike]: '%' + searchQuery + '%' } },
+                        { description: { [Sequelize.Op.iLike]: '%' + searchQuery + '%' } },
+                    ],
+                    status: [0, 1]
+                }
+            });
+            totalcount = product_category.length;
+        } else if (limit == "" && page == "") {
             product_category = await ProductCategory.findAll({
                 where: {
                     status: {
                         [Sequelize.Op.in]: [0, 1]
                     }
                 }
+            });
+            totalcount = await ProductCategory.count({
+                raw: true,
+                where: { status: ['0', '1'] },
             });
         }
         else {
@@ -62,12 +77,12 @@ exports.getAllProductCategories = async (req, res, next) => {
                 limit: limit,
                 offset: offset
             });
-
+            totalcount = await ProductCategory.count({
+                raw: true,
+                where: { status: ['0', '1'] },
+            });
         }
-        let totalcount = await ProductCategory.count({
-            raw: true,
-            where: { status: ['0', '1'] },
-        });
+
         logger.info(`ProductCategory get data ${JSON.stringify(product_category)} `);
         res.status(200)
             .json({ status: 200, data: product_category, totalcount: totalcount });

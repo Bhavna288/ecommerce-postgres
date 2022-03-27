@@ -6,6 +6,8 @@ const Order = require('../models/order');
 const UserCart = require('../models/userCart');
 const OrderItems = require('../models/orderItems');
 const Product = require('../models/product');
+const User = require('../models/user');
+const UserAddress = require('../models/userAddress');
 
 /**
  * insert order data
@@ -114,10 +116,50 @@ exports.addOrder = async (req, res, next) => {
 
 exports.getAllOrders = async (req, res, next) => {
     try {
-        let { limit, page } = await req.body;
+        let { limit, page, searchQuery } = await req.body;
         let offset = (page - 1) * limit;
-        let order_data = [];
-        if (limit == "" && page == "") {
+        let order_data = [], totalcount;
+        if (searchQuery) {
+            order_data = await Order.findAll({
+                where: {
+                    [Sequelize.Op.or]: [
+                        { referenceNumber: { [Sequelize.Op.iLike]: '%' + searchQuery + '%' } },
+                        { deliveryStatus: { [Sequelize.Op.iLike]: '%' + searchQuery + '%' } },
+                        { remarks: { [Sequelize.Op.iLike]: '%' + searchQuery + '%' } },
+                        { '$user.name$': { [Sequelize.Op.iLike]: '%' + searchQuery + '%' } },
+                        { '$user.email$': { [Sequelize.Op.iLike]: '%' + searchQuery + '%' } },
+                        { '$user.mobileNumber$': { [Sequelize.Op.iLike]: '%' + searchQuery + '%' } },
+                        { '$address.fullName$': { [Sequelize.Op.iLike]: '%' + searchQuery + '%' } },
+                        { '$address.pincode$': { [Sequelize.Op.iLike]: '%' + searchQuery + '%' } },
+                        { '$address.addressLine1$': { [Sequelize.Op.iLike]: '%' + searchQuery + '%' } },
+                        { '$address.addressLine2$': { [Sequelize.Op.iLike]: '%' + searchQuery + '%' } },
+                        { '$address.mobileNumber$': { [Sequelize.Op.iLike]: '%' + searchQuery + '%' } },
+                        { '$address.city.cityName$': { [Sequelize.Op.iLike]: '%' + searchQuery + '%' } },
+                        { '$address.state.stateName$': { [Sequelize.Op.iLike]: '%' + searchQuery + '%' } },
+                        { '$address.country.countryName$': { [Sequelize.Op.iLike]: '%' + searchQuery + '%' } },
+                        sequelize.where(
+                            sequelize.cast(sequelize.col('order.totalPrice'), 'varchar'),
+                            { [Sequelize.Op.iLike]: `%${searchQuery}%` }
+                        ),
+                        sequelize.where(
+                            sequelize.cast(sequelize.col('order.orderDate'), 'varchar'),
+                            { [Sequelize.Op.iLike]: `%${searchQuery}%` }
+                        )
+                    ],
+                    status: [0, 1]
+                },
+                include: [{
+                    model: User,
+                    as: 'user',
+                    include: [{ all: true, nested: true }]
+                }, {
+                    model: UserAddress,
+                    as: 'address',
+                    include: ['state', 'city', 'country']
+                }]
+            });
+            totalcount = order_data.length;
+        } else if (limit == "" && page == "") {
             order_data = await Order.findAll({
                 where: {
                     status: {
@@ -125,6 +167,10 @@ exports.getAllOrders = async (req, res, next) => {
                     }
                 },
                 include: [{ all: true, nested: true }]
+            });
+            totalcount = await Order.count({
+                raw: true,
+                where: { status: ['0', '1'] },
             });
         }
         else {
@@ -138,7 +184,10 @@ exports.getAllOrders = async (req, res, next) => {
                 offset: offset,
                 include: [{ all: true, nested: true }]
             });
-
+            totalcount = await Order.count({
+                raw: true,
+                where: { status: ['0', '1'] },
+            });
         }
         if (order_data.length > 0) {
             for (const order of order_data) {
@@ -153,10 +202,6 @@ exports.getAllOrders = async (req, res, next) => {
         }
         console.log(order_data);
 
-        let totalcount = await Order.count({
-            raw: true,
-            where: { status: ['0', '1'] },
-        });
         logger.info(`Order get data ${JSON.stringify(order_data)} `);
         res.status(200)
             .json({ status: 200, data: order_data, totalcount: totalcount });
@@ -252,6 +297,48 @@ exports.getOrderByUserId = async (req, res, next) => {
 };
 
 /**
+ * returns order data by reference number
+ * 
+ * @body {referenceNumber} req to get order data by id
+ */
+
+exports.getOrderByReferenceNumber = async (req, res, next) => {
+    try {
+        let { referenceNumber } = req.body;
+        let order_data = await Order.findOne({
+            where: {
+                status: [0, 1],
+                referenceNumber: referenceNumber
+            },
+            include: [{ all: true, nested: true }]
+        });
+
+        if (order_data) {
+            let get_items = await OrderItems.findAll({
+                where: {
+                    orderId: order_data.orderId,
+                    status: 1
+                }
+            });
+            order_data.dataValues['orderItems'] = get_items;
+        }
+        logger.info(`Order get data by referenceNumber ${referenceNumber} results: ${JSON.stringify(order_data)} `);
+        if (order_data)
+            res.status(200)
+                .json({ status: 200, data: order_data });
+        else
+            res.status(200)
+                .json({ status: 200, data: {}, message: message.resmessage.deletedrecord });
+    } catch (err) {
+        if (!err.statusCode) {
+            res.status(200)
+                .json({ status: 401, message: err.message, data: {} })
+        }
+        next(err);
+    }
+};
+
+/**
  * updates order data
  * 
  * @body {orderId, userId, referenceNumber, totalPrice, orderDate, expectedDeliveryDate, deliveryStatus, remarks,
@@ -312,6 +399,43 @@ exports.deleteOrder = async (req, res, next) => {
         logger.info(`Order deleted by id ${orderId} delete status: ${delete_status}`);
         res.status(200)
             .json({ status: 200, message: message.resmessage.orderdeleted });
+    } catch (err) {
+        if (!err.statusCode) {
+            res.status(200)
+                .json({ status: 401, message: err.message, data: {} })
+        }
+        next(err);
+    }
+};
+
+/**
+ * change delivery status of order by id
+ *
+ * @body {orderId, deliveryStatus} to change status
+ */
+exports.changeDeliveryStatus = async (req, res, next) => {
+    try {
+        let {
+            orderId,
+            deliveryStatus
+        } = await req.body;
+        let change_status = await Order.update({
+            deliveryStatus
+        }, {
+            where: {
+                orderId: orderId,
+                status: [0, 1]
+            }
+        });
+        if (change_status != 0) {
+            logger.info(`Order delivery status changed to ${deliveryStatus} for order ${orderId}`);
+            res.status(200)
+                .json({ status: 200, message: message.resmessage.orderdeliverystatus });
+        } else {
+            logger.info(`Order status for order ${orderId} not changed`);
+            res.status(200)
+                .json({ status: 200, message: message.resmessage.deletedrecord });
+        }
     } catch (err) {
         if (!err.statusCode) {
             res.status(200)

@@ -5,7 +5,7 @@ const router = express.Router();
 router.post('/add', userCartController.addUserCart); // save data
 router.post('/getalldata', userCartController.getAllUserCart); // get all data
 router.get('/getbyid/:id', userCartController.getUserCartById); // get data by id
-router.get('/getbyuserid/:id', userCartController.getUserCartByUserId); // get data by user id
+router.post('/getbyuserid', userCartController.getUserCartByUserId); // get data by user id
 router.post('/update', userCartController.updateUserCart); // update data
 router.post('/delete', userCartController.deleteUserCart); // delete data by id
 router.post('/changestatus', userCartController.changeStatus); // change status

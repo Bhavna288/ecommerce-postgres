@@ -1,7 +1,9 @@
 const Sequelize = require('sequelize');
 const logger = require('../config/logger');
+const sequelize = require('../config/database');
 const message = require('../response_message/message');
 const Payment = require('../models/payment');
+const Order = require('../models/order');
 
 /**
  * insert payment data
@@ -42,10 +44,39 @@ exports.addPayment = async (req, res, next) => {
 
 exports.getAllPayment = async (req, res, next) => {
     try {
-        let { limit, page } = await req.body;
+        let { limit, page, searchQuery } = await req.body;
         let offset = (page - 1) * limit;
-        let payment_data = [];
-        if (limit == "" && page == "") {
+        let payment_data = [], totalcount;
+        if (searchQuery) {
+            payment_data = await Payment.findAll({
+                where: {
+                    [Sequelize.Op.or]: [
+                        { mode: { [Sequelize.Op.iLike]: '%' + searchQuery + '%' } },
+                        { '$order.referenceNumber$': { [Sequelize.Op.iLike]: '%' + searchQuery + '%' } },
+                        { '$order.deliveryStatus$': { [Sequelize.Op.iLike]: '%' + searchQuery + '%' } },
+                        { '$order.remarks$': { [Sequelize.Op.iLike]: '%' + searchQuery + '%' } },
+                        { '$order.user.name$': { [Sequelize.Op.iLike]: '%' + searchQuery + '%' } },
+                        { '$order.user.email$': { [Sequelize.Op.iLike]: '%' + searchQuery + '%' } },
+                        { '$order.user.mobileNumber$': { [Sequelize.Op.iLike]: '%' + searchQuery + '%' } },
+                        sequelize.where(
+                            sequelize.cast(sequelize.col('payment.amount'), 'varchar'),
+                            { [Sequelize.Op.iLike]: `%${searchQuery}%` }
+                        ),
+                        sequelize.where(
+                            sequelize.cast(sequelize.col('order.orderDate'), 'varchar'),
+                            { [Sequelize.Op.iLike]: `%${searchQuery}%` }
+                        )
+                    ],
+                    status: [0, 1]
+                },
+                include: [{
+                    model: Order,
+                    as: 'order',
+                    include: ['user']
+                }]
+            });
+            totalcount = payment_data.length;
+        } else if (limit == "" && page == "") {
             payment_data = await Payment.findAll({
                 where: {
                     status: {
@@ -53,6 +84,9 @@ exports.getAllPayment = async (req, res, next) => {
                     }
                 },
                 include: [{ all: true, nested: true }]
+            });
+            totalcount = await Payment.count({
+                where: { status: ['0', '1'] },
             });
         }
         else {
@@ -67,11 +101,11 @@ exports.getAllPayment = async (req, res, next) => {
                 offset: offset,
                 include: [{ all: true, nested: true }]
             });
-
+            totalcount = await Payment.count({
+                where: { status: ['0', '1'] },
+            });
         }
-        let totalcount = await Payment.count({
-            where: { status: ['0', '1'] },
-        });
+
         logger.info(`Payment get data ${JSON.stringify(payment_data)} `);
         res.status(200)
             .json({ status: 200, data: payment_data, totalcount: totalcount });

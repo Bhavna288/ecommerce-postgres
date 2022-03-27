@@ -25,7 +25,7 @@ const UserAddress = sequelize.define(table_name, {
         allowNull: false
     },
     pincode: {
-        type: Sequelize.BIGINT,
+        type: Sequelize.STRING,
         allowNull: false
     },
     addressLine1: {
