@@ -10,4 +10,5 @@ router.post('/getbyrefno', orderController.getOrderByReferenceNumber); // get da
 router.post('/update', orderController.updateOrder); // update data
 router.post('/delete', orderController.deleteOrder); // delete data by id
 router.post('/changestatus', orderController.changeStatus); // change status
+router.post('/updatedeliverystatus', orderController.changeDeliveryStatus); // change delivery status
 module.exports = router;
