@@ -9,10 +9,7 @@ const Product = require('../models/product');
 const User = require('../models/user');
 const UserAddress = require('../models/userAddress');
 const Stripe = require('stripe');
-const Payment = require('../models/payment');
 const { addPayment } = require('./payment.controller');
-const stripe = Stripe('sk_test_51KjnicSCSdPhz8Uw985iwrerpwUCgeLgAJdKOuvA6BNHYPfzy9gEReOQs72tECozyufEpAuMwU4zZnxsWx77nkUL00U5ffLAW0');
-const domain = "localhost:3000";
 
 /**
  * insert order data
@@ -33,7 +30,6 @@ exports.addOrder = async (req, res, next) => {
             nameOnCard,
             successUrl,
             cancelUrl,
-            payment,
             createByIp
         } = await req.body;
         let totalPrice = 0;
@@ -92,9 +88,7 @@ exports.addOrder = async (req, res, next) => {
             var item_obj = items.reduce((obj, item) => ({ ...obj, [item.productId]: JSON.stringify(items) }), {})
             let payment_body = {
                 orderId: insert_status.orderId,
-                payment: payment,
                 stripeEmail: stripeEmail,
-                nameOnCard: nameOnCard,
                 metadata: item_obj,
                 items: get_items,
                 success_url: successUrl,
@@ -241,7 +235,6 @@ exports.getAllOrders = async (req, res, next) => {
         if (order_data.length > 0) {
             for (const order of order_data) {
                 order.dataValues['orderItems'] = await OrderItems.findAll({
-                    raw: true,
                     where: {
                         orderId: order.orderId,
                         status: 1

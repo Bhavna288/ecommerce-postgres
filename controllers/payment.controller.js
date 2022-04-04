@@ -5,8 +5,10 @@ const message = require('../response_message/message');
 const Payment = require('../models/payment');
 const Order = require('../models/order');
 const Stripe = require('stripe');
-const stripe = Stripe('sk_test_51KjnicSCSdPhz8Uw985iwrerpwUCgeLgAJdKOuvA6BNHYPfzy9gEReOQs72tECozyufEpAuMwU4zZnxsWx77nkUL00U5ffLAW0');
-const domain = "localhost:3000"
+const dotenv = require('dotenv').config();
+const secretKey = dotenv.parsed.STRIPE_SECRETKEY;
+
+const stripe = Stripe(secretKey);
 
 /**
  * insert payment data
@@ -17,9 +19,7 @@ exports.addPayment = async (body) => {
     try {
         let {
             orderId,
-            payment,
             stripeEmail,
-            nameOnCard,
             metadata,
             items,
             success_url,
@@ -30,23 +30,10 @@ exports.addPayment = async (body) => {
         } = body;
         let insert_payment_status, session;
         if (mode == 'card') {
-            const paymentMethod = await stripe.paymentMethods.create({
-                type: 'card',
-                card: {
-                    number: payment.cardNumber,
-                    exp_month: payment.expMonth,
-                    exp_year: payment.expYear,
-                    cvc: payment.cvc
-                },
-            }).catch(err => { return { err: err } });
             await stripe.customers.create({
                 email: stripeEmail,
-                name: nameOnCard
+                description: "Creating customer for payment using stripe"
             }).then(async (customer) => {
-                const attachPaymentMethod = await stripe.paymentMethods.attach(
-                    paymentMethod.id,
-                    { customer: customer.id }
-                ).catch(err => { return { err: err } });
                 session = await stripe.checkout.sessions.create({
                     payment_method_types: ['card'],
                     customer: customer.id,
