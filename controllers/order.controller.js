@@ -8,6 +8,11 @@ const OrderItems = require('../models/orderItems');
 const Product = require('../models/product');
 const User = require('../models/user');
 const UserAddress = require('../models/userAddress');
+const Stripe = require('stripe');
+const Payment = require('../models/payment');
+const { addPayment } = require('./payment.controller');
+const stripe = Stripe('sk_test_51KjnicSCSdPhz8Uw985iwrerpwUCgeLgAJdKOuvA6BNHYPfzy9gEReOQs72tECozyufEpAuMwU4zZnxsWx77nkUL00U5ffLAW0');
+const domain = "localhost:3000";
 
 /**
  * insert order data
@@ -19,20 +24,36 @@ exports.addOrder = async (req, res, next) => {
     try {
         let {
             userId,
-            totalPrice,
             orderDate,
             deliveryStatus,
             remarks,
             selectedAddress,
+            mode,
+            stripeEmail,
+            nameOnCard,
+            successUrl,
+            cancelUrl,
+            payment,
             createByIp
         } = await req.body;
-
+        let totalPrice = 0;
         let get_items = await UserCart.findAll({
+            raw: true,
+            nest: true,
             where: {
                 userId: userId,
                 status: 1
-            }
+            },
+            include: [{
+                model: Product,
+                as: 'product',
+                attributes: ["name", "price", "discountedPrice"]
+            }]
         });
+
+        await get_items.forEach(item => {
+            totalPrice += ((item.product.discountedPrice ? item.product.discountedPrice : item.product.price) * item.quantity);
+        })
 
         if (get_items.length > 0) {
             let insert_status = await Order.create({
@@ -45,7 +66,7 @@ exports.addOrder = async (req, res, next) => {
                 createByIp
             });
             let items = [];
-            await get_items.forEach(async (item, index) => {
+            for (var item of get_items) {
                 let get_delivery_time = await Product.findOne({
                     attributes: ['deliveryDays'],
                     where: {
@@ -59,41 +80,69 @@ exports.addOrder = async (req, res, next) => {
                     orderId: insert_status.orderId,
                     quantity: item.quantity,
                     productId: item.productId,
+                    userCartId: item.userCartId,
                     expectedDeliveryDate: exp_date,
                     createByIp: createByIp
                 })
-            })
-
-            // emptying the user cart
-            let empty_cart = await UserCart.update({
-                status: 2
-            }, {
-                where: {
-                    userId: userId,
-                    status: 1
-                },
-                returning: true
-            });
-
-            for (const item of empty_cart[1]) {
-                // subtracting the quantity of the product
-                let remove_product = await Product.update({
-                    quantity: Sequelize.literal('quantity - ' + item.quantity)
-                }, {
-                    where: {
-                        productId: item.productId,
-                        status: 1
-                    }
-                });
             }
-            logger.info(`UserCart emptied for user: ${userId}`);
 
             let insert_items = await OrderItems.bulkCreate(items);
             insert_status.dataValues['orderItems'] = items;
 
-            logger.info(`Order data inserted: ${JSON.stringify(req.body)} \n order items: ${insert_items}`);
-            res.status(200)
-                .json({ status: 200, message: message.resmessage.orderadded, data: insert_status });
+            var item_obj = items.reduce((obj, item) => ({ ...obj, [item.productId]: JSON.stringify(items) }), {})
+            let payment_body = {
+                orderId: insert_status.orderId,
+                payment: payment,
+                stripeEmail: stripeEmail,
+                nameOnCard: nameOnCard,
+                metadata: item_obj,
+                items: get_items,
+                success_url: successUrl,
+                cancel_url: cancelUrl,
+                mode: mode,
+                totalPrice: totalPrice,
+                createByIp: createByIp
+            }
+
+            let add_payment = await addPayment(payment_body).then(async (add_payment) => {
+                if (add_payment && add_payment.err) {
+                    let delete_order = Order.destroy({ where: { orderId: insert_status.orderId } }).then((deleted) => {
+                        res.status(200)
+                            .json({ status: 401, message: message.resmessage.paymentfailed, data: {} });
+                    }).catch(err => console.log(err));
+                } else {
+                    // emptying the user cart
+                    let empty_cart = await UserCart.update({
+                        status: 2
+                    }, {
+                        where: {
+                            userId: userId,
+                            status: 1
+                        },
+                        returning: true
+                    });
+                    for (const item of empty_cart[1]) {
+                        // subtracting the quantity of the product
+                        let remove_product = await Product.update({
+                            quantity: Sequelize.literal('quantity - ' + item.quantity)
+                        }, {
+                            where: {
+                                productId: item.productId,
+                                status: 1
+                            }
+                        }).catch(err => {
+                            return res.status(200)
+                                .json({ status: 401, message: message.resmessage.orderproductnotremoved, data: {} });
+                        });
+                    }
+                    logger.info(`UserCart emptied for user: ${userId}`);
+                    insert_status.setDataValue('payment', add_payment);
+
+                    logger.info(`Order data inserted: ${JSON.stringify(req.body)} \n order items: ${insert_items}`);
+                    res.status(200)
+                        .json({ status: 200, message: message.resmessage.orderadded, data: insert_status });
+                }
+            });
         } else {
             logger.info(`Order not added: ${JSON.stringify(req.body)}`);
             res.status(200)

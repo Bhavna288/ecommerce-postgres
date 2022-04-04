@@ -21,6 +21,7 @@ exports.resmessage = {
     productdiscountupdated: "Product Discount updated successfully.",
     productdiscountstatus: "Product Discount status changed successfully.",
     productdiscountdeleted: "Product Discount deleted successfully.",
+    productdiscountnotexists: "Product Discount does not exists or is inactive.",
     productinventoryadded: "Product Inventory added successfully.",
     productinventoryupdated: "Product Inventory updated successfully.",
     productinventorystatus: "Product Inventory status changed successfully.",
@@ -51,4 +52,6 @@ exports.resmessage = {
     paymentupdated: "Payment updated successfully.",
     paymentstatus: "Payment status changed successfully.",
     paymentdeleted: "Payment deleted successfully.",
+    paymentfailed: "Payment failed! Please place the order again.",
+    orderproductnotremoved: "Products not reduced.",
 }

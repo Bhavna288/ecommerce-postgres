@@ -9,11 +9,6 @@ const Payment = sequelize.define(table_name, {
         allowNull: false,
         primaryKey: true
     },
-    orderId: {
-        type: Sequelize.INTEGER,
-        allowNull: false,
-        unique: true
-    },
     amount: {
         type: Sequelize.DECIMAL,
         allowNull: false
@@ -21,6 +16,26 @@ const Payment = sequelize.define(table_name, {
     mode: {
         type: Sequelize.STRING,
         allowNull: false
+    },
+    sessionId: {
+        type: Sequelize.STRING,
+        allowNull: true
+    },
+    currency: {
+        type: Sequelize.STRING,
+        allowNull: true
+    },
+    stripeEmail: {
+        type: Sequelize.STRING,
+        allowNull: true
+    },
+    nameOnCard: {
+        type: Sequelize.STRING,
+        allowNull: true
+    },
+    url: {
+        type: Sequelize.TEXT,
+        allowNull: true
     },
     status: {
         type: Sequelize.INTEGER,
@@ -36,7 +51,5 @@ const Payment = sequelize.define(table_name, {
         allowNull: true
     },
 });
-
-Payment.belongsTo(Order, { as: "order", foreignKey: { name: "orderId" } });
 
 module.exports = Payment;

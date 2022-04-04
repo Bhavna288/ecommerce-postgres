@@ -28,18 +28,47 @@ exports.addProduct = async (req, res, next) => {
         if (req.file) {
             image = req.file.filename;
         }
-        let insert_status = await Product.create({
-            name,
-            description,
-            SKU,
-            price,
-            image,
-            categoryId,
-            discountId,
-            quantity,
-            deliveryDays,
-            createByIp
-        });
+        let insert_status;
+        if (discountId) {
+            let product_discount = await ProductDiscount.findOne({
+                where: {
+                    status: 1,
+                    productDiscountId: discountId
+                }
+            });
+
+            if (product_discount) {
+                let discountedPrice = price - (price * product_discount.percentage / 100);
+                insert_status = await Product.create({
+                    name,
+                    description,
+                    SKU,
+                    price,
+                    image,
+                    categoryId,
+                    discountId,
+                    quantity,
+                    discountedPrice,
+                    deliveryDays,
+                    createByIp
+                });
+            } else {
+                return res.json({ status: 200, message: message.resmessage.productdiscountnotexists, data: {} })
+            }
+        } else {
+            insert_status = await Product.create({
+                name,
+                description,
+                SKU,
+                price,
+                image,
+                categoryId,
+                discountId,
+                quantity,
+                deliveryDays,
+                createByIp
+            });
+        }
 
         logger.info(`Product data inserted: ${JSON.stringify(req.body)}`);
         res.status(200)
@@ -259,22 +288,55 @@ exports.updateProduct = async (req, res, next) => {
         if (req.file) {
             image = req.file.filename;
         }
-        let update_status = await Product.update({
-            name,
-            description,
-            SKU,
-            price,
-            image,
-            categoryId,
-            discountId,
-            quantity,
-            deliveryDays,
-            updateByIp
-        }, {
-            where: {
-                productId: productId
+        let update_status;
+        if (discountId) {
+            let product_discount = await ProductDiscount.findOne({
+                where: {
+                    status: 1,
+                    productDiscountId: discountId
+                }
+            });
+
+            if (product_discount) {
+                let discountedPrice = price - (price * product_discount.percentage / 100);
+                update_status = await Product.update({
+                    name,
+                    description,
+                    SKU,
+                    price,
+                    image,
+                    categoryId,
+                    discountId,
+                    discountedPrice,
+                    quantity,
+                    deliveryDays,
+                    updateByIp
+                }, {
+                    where: {
+                        productId: productId
+                    }
+                });
+            } else {
+                return res.json({ status: 200, message: message.resmessage.productdiscountnotexists, data: {} })
             }
-        });
+        } else {
+            update_status = await Product.update({
+                name,
+                description,
+                SKU,
+                price,
+                image,
+                categoryId,
+                discountId,
+                quantity,
+                deliveryDays,
+                updateByIp
+            }, {
+                where: {
+                    productId: productId
+                }
+            });
+        }
         logger.info(`Product data updated status: ${JSON.stringify(update_status)} for productid ${productId}`);
         res.status(200)
             .json({ status: 200, message: message.resmessage.productupdated, data: {} });

@@ -30,6 +30,10 @@ const Product = sequelize.define(table_name, {
         type: Sequelize.DECIMAL,
         allowNull: false
     },
+    discountedPrice: {
+        type: Sequelize.DECIMAL,
+        allowNull: true
+    },
     tags: {
         type: Sequelize.ARRAY(Sequelize.STRING),
         allowNull: true

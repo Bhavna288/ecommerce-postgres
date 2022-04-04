@@ -4,35 +4,102 @@ const sequelize = require('../config/database');
 const message = require('../response_message/message');
 const Payment = require('../models/payment');
 const Order = require('../models/order');
+const Stripe = require('stripe');
+const stripe = Stripe('sk_test_51KjnicSCSdPhz8Uw985iwrerpwUCgeLgAJdKOuvA6BNHYPfzy9gEReOQs72tECozyufEpAuMwU4zZnxsWx77nkUL00U5ffLAW0');
+const domain = "localhost:3000"
 
 /**
  * insert payment data
  * 
  * @body {orderId, amount, mode, createByIp} req to add payment data
  */
-exports.addPayment = async (req, res, next) => {
+exports.addPayment = async (body) => {
     try {
         let {
             orderId,
-            amount,
+            payment,
+            stripeEmail,
+            nameOnCard,
+            metadata,
+            items,
+            success_url,
+            cancel_url,
             mode,
+            totalPrice,
             createByIp
-        } = await req.body;
-        let insert_status = await Payment.create({
-            orderId,
-            amount,
-            mode,
-            createByIp
-        });
-        logger.info(`Payment data inserted: ${JSON.stringify(req.body)}`);
-        res.status(200)
-            .json({ status: 200, message: message.resmessage.paymentadded, data: insert_status });
+        } = body;
+        let insert_payment_status, session;
+        if (mode == 'card') {
+            const paymentMethod = await stripe.paymentMethods.create({
+                type: 'card',
+                card: {
+                    number: payment.cardNumber,
+                    exp_month: payment.expMonth,
+                    exp_year: payment.expYear,
+                    cvc: payment.cvc
+                },
+            }).catch(err => { return { err: err } });
+            await stripe.customers.create({
+                email: stripeEmail,
+                name: nameOnCard
+            }).then(async (customer) => {
+                const attachPaymentMethod = await stripe.paymentMethods.attach(
+                    paymentMethod.id,
+                    { customer: customer.id }
+                ).catch(err => { return { err: err } });
+                session = await stripe.checkout.sessions.create({
+                    payment_method_types: ['card'],
+                    customer: customer.id,
+                    metadata: metadata,
+                    line_items: items.map(item => {
+                        return {
+                            price_data: {
+                                currency: 'inr',
+                                product_data: {
+                                    name: item.product.name
+                                },
+                                unit_amount: (item.product.discountedPrice ? item.product.discountedPrice : item.product.price) * 100
+                            },
+                            quantity: item.quantity
+                        }
+                    }),
+                    mode: "payment",
+                    success_url,
+                    cancel_url
+                }).catch(err => { return { err: err } });
+            }).catch(err => { return { err: err } });
+            insert_payment_status = await Payment.create({
+                orderId: orderId,
+                amount: session.amount_total / 100,
+                mode: mode,
+                sessionId: session.id,
+                currency: 'inr',
+                stripeEmail: stripeEmail,
+                url: session.url,
+                createByIp: createByIp
+            }).catch(err => { console.log(err); return ({ err: err }) });
+
+            logger.info(`Payment data inserted: ${JSON.stringify(body)}`);
+
+            return insert_payment_status;
+        } else {
+            insert_payment_status = await Payment.create({
+                orderId: orderId,
+                amount: totalPrice,
+                mode: mode,
+                currency: 'inr',
+                createByIp: createByIp
+            }).catch(err => { console.log(err); return ({ err: err }) });
+
+            logger.info(`Payment data inserted: ${JSON.stringify(body)}`);
+
+            return insert_payment_status;
+        }
+
     } catch (err) {
         if (!err.statusCode) {
-            res.status(200)
-                .json({ status: 401, message: err.message, data: {} })
+            return ({ status: 401, err: err, data: {} })
         }
-        next(err);
     }
 };
 
@@ -171,69 +238,6 @@ exports.getPaymentByOrderId = async (req, res, next) => {
         else
             res.status(200)
                 .json({ status: 200, data: {}, message: message.resmessage.deletedrecord });
-    } catch (err) {
-        if (!err.statusCode) {
-            res.status(200)
-                .json({ status: 401, message: err.message, data: {} })
-        }
-        next(err);
-    }
-};
-
-/**
- * updates payment data
- * 
- * @body {paymentId, orderId, amount, mode, updateByIp} req to update payment data
- */
-exports.updatePayment = async (req, res, next) => {
-    try {
-        let {
-            paymentId,
-            orderId,
-            amount,
-            mode,
-            updateByIp
-        } = await req.body;
-        let update_status = await Payment.update({
-            orderId,
-            amount,
-            mode,
-            updateByIp
-        }, {
-            where: {
-                paymentId: paymentId
-            }
-        });
-        logger.info(`Payment data updated status: ${JSON.stringify(update_status)} for userid ${paymentId}`);
-        res.status(200)
-            .json({ status: 200, message: message.resmessage.paymentupdated, data: {} });
-    } catch (err) {
-        if (!err.statusCode) {
-            res.status(200)
-                .json({ status: 401, message: err.message, data: {} })
-        }
-        next(err);
-    }
-};
-
-/**
- * delete payment by id
- *
- * @body {paymentId} to delete payment
- */
-exports.deletePayment = async (req, res, next) => {
-    try {
-        let {
-            paymentId
-        } = await req.body;
-        let delete_status = await Payment.update({
-            status: 2
-        }, {
-            where: { paymentId: paymentId }
-        });
-        logger.info(`Payment deleted by id ${paymentId} delete status: ${delete_status}`);
-        res.status(200)
-            .json({ status: 200, message: message.resmessage.paymentdeleted });
     } catch (err) {
         if (!err.statusCode) {
             res.status(200)

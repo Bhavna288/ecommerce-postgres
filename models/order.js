@@ -1,5 +1,7 @@
 const Sequelize = require('sequelize');
 const sequelize = require('../config/database');
+const OrderItems = require('./orderItems');
+const Payment = require('./payment');
 const User = require('./user');
 const UserAddress = require('./userAddress');
 const table_name = 'order';
@@ -58,5 +60,9 @@ const Order = sequelize.define(table_name, {
 
 Order.belongsTo(User, { as: "user", foreignKey: { name: "userId" } });
 Order.belongsTo(UserAddress, { as: "address", foreignKey: { name: "selectedAddress" } });
+Order.hasOne(Payment, { foreignKey: { name: "orderId" }, onDelete: 'CASCADE', onUpdate: 'CASCADE' });
+Order.hasMany(OrderItems, { foreignKey: { name: "orderId" }, onDelete: 'CASCADE', onUpdate: 'CASCADE' });
+OrderItems.belongsTo(Order, { as: "order", foreignKey: { name: "orderId" } });
+Payment.belongsTo(Order, { as: "order", foreignKey: { name: "orderId" } });
 
 module.exports = Order;
