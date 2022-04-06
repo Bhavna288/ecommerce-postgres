@@ -31,12 +31,11 @@ const Order = sequelize.define(table_name, {
         type: Sequelize.DATE,
         allowNull: false
     },
-    status: {
-        type: Sequelize.INTEGER,
-        allowNull: false,
-        defaultValue: 1
-    },
     deliveryStatus: {
+        type: Sequelize.STRING,
+        allowNull: false
+    },
+    deliveryType: {
         type: Sequelize.STRING,
         allowNull: false
     },
@@ -47,6 +46,11 @@ const Order = sequelize.define(table_name, {
     selectedAddress: {
         type: Sequelize.INTEGER,
         allowNull: false,
+    },
+    status: {
+        type: Sequelize.INTEGER,
+        allowNull: false,
+        defaultValue: 1
     },
     createByIp: {
         type: Sequelize.STRING,

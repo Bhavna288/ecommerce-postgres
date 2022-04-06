@@ -31,6 +31,37 @@ const imageFilter = (req, file, cb) => {
 const uploadProductImage = multer({
     storage: ProductImageStorage,
     fileFilter: imageFilter
-}).single('image');
+}).array('images', 10);
 
-module.exports = { uploadProductImage };
+const ProductCategoryIconStorayge = multer.diskStorage({
+    destination: function (req, file, cb) {
+        upload_path = "./uploads/productcategory/icon";
+        mkdirp(upload_path).then(made =>
+            cb(null, upload_path)
+        ).catch(err => console.error(err));
+    },
+    filename: (req, file, cb) => {
+        console.log(file.mimetype);
+        cb(null, file.fieldname + '_' + Date.now() + '.' + mime.extension(file.mimetype));
+    }
+
+})
+
+const iconFilter = (req, file, cb) => {
+    if (
+        file.mimetype.includes("jpg") ||
+        file.mimetype.includes("jpeg") ||
+        file.mimetype.includes("png")
+    ) {
+        cb(null, true);
+    } else {
+        cb("Please upload only jpg, jpeg or png file.", false);
+    }
+};
+
+const uploadProductCategoryIcon = multer({
+    storage: ProductCategoryIconStorayge,
+    fileFilter: iconFilter
+}).single('categoryIcon');
+
+module.exports = { uploadProductImage, uploadProductCategoryIcon };

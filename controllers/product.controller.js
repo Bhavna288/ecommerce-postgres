@@ -24,9 +24,10 @@ exports.addProduct = async (req, res, next) => {
             deliveryDays,
             createByIp
         } = await req.body;
-        let image = "";
-        if (req.file) {
-            image = req.file.filename;
+        let images = [];
+        if (req.files) {
+            for (const file of req.files)
+                images.push(file.filename);
         }
         let insert_status;
         if (discountId) {
@@ -44,7 +45,7 @@ exports.addProduct = async (req, res, next) => {
                     description,
                     SKU,
                     price,
-                    image,
+                    images,
                     categoryId,
                     discountId,
                     quantity,
@@ -61,7 +62,7 @@ exports.addProduct = async (req, res, next) => {
                 description,
                 SKU,
                 price,
-                image,
+                images,
                 categoryId,
                 discountId,
                 quantity,
@@ -284,9 +285,10 @@ exports.updateProduct = async (req, res, next) => {
             deliveryDays,
             updateByIp
         } = await req.body;
-        let image = "";
-        if (req.file) {
-            image = req.file.filename;
+        let images = [];
+        if (req.files) {
+            for (const file of req.files)
+                images.push(file.filename);
         }
         let update_status;
         if (discountId) {
@@ -304,7 +306,7 @@ exports.updateProduct = async (req, res, next) => {
                     description,
                     SKU,
                     price,
-                    image,
+                    images,
                     categoryId,
                     discountId,
                     discountedPrice,
@@ -325,7 +327,7 @@ exports.updateProduct = async (req, res, next) => {
                 description,
                 SKU,
                 price,
-                image,
+                images,
                 categoryId,
                 discountId,
                 quantity,

@@ -12,6 +12,10 @@ const ProductCategory = sequelize.define(table_name, {
         type: Sequelize.STRING,
         allowNull: false
     },
+    categoryIcon: {
+        type: Sequelize.STRING,
+        allowNull: true
+    },
     description: {
         type: Sequelize.STRING,
         allowNull: false

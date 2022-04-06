@@ -27,7 +27,7 @@ exports.addOrder = async (req, res, next) => {
             selectedAddress,
             mode,
             stripeEmail,
-            nameOnCard,
+            deliveryType,
             successUrl,
             cancelUrl,
             createByIp
@@ -59,6 +59,7 @@ exports.addOrder = async (req, res, next) => {
                 deliveryStatus,
                 remarks,
                 selectedAddress,
+                deliveryType,
                 createByIp
             });
             let items = [];
@@ -169,6 +170,7 @@ exports.getAllOrders = async (req, res, next) => {
                         { referenceNumber: { [Sequelize.Op.iLike]: '%' + searchQuery + '%' } },
                         { deliveryStatus: { [Sequelize.Op.iLike]: '%' + searchQuery + '%' } },
                         { remarks: { [Sequelize.Op.iLike]: '%' + searchQuery + '%' } },
+                        { deliveryType: { [Sequelize.Op.iLike]: '%' + searchQuery + '%' } },
                         { '$user.name$': { [Sequelize.Op.iLike]: '%' + searchQuery + '%' } },
                         { '$user.email$': { [Sequelize.Op.iLike]: '%' + searchQuery + '%' } },
                         { '$user.mobileNumber$': { [Sequelize.Op.iLike]: '%' + searchQuery + '%' } },
@@ -383,28 +385,21 @@ exports.getOrderByReferenceNumber = async (req, res, next) => {
 /**
  * updates order data
  * 
- * @body {orderId, userId, referenceNumber, totalPrice, orderDate, expectedDeliveryDate, deliveryStatus, remarks,
- *       updateByIp} req to update order data
+ * @body {orderId, deliveryType, deliveryStatus, remarks, updateByIp} req to update order data
  */
 exports.updateOrder = async (req, res, next) => {
     try {
         let {
             orderId,
-            userId,
-            totalPrice,
-            orderDate,
-            deliveryStatus,
             remarks,
             selectedAddress,
+            deliveryType,
             updateByIp
         } = await req.body;
         let update_status = await Order.update({
-            userId,
-            totalPrice,
-            orderDate,
-            deliveryStatus,
             remarks,
             selectedAddress,
+            deliveryType,
             updateByIp
         }, {
             where: {
@@ -474,7 +469,44 @@ exports.changeDeliveryStatus = async (req, res, next) => {
             res.status(200)
                 .json({ status: 200, message: message.resmessage.orderdeliverystatus });
         } else {
-            logger.info(`Order status for order ${orderId} not changed`);
+            logger.info(`Order delivery status for order ${orderId} not changed`);
+            res.status(200)
+                .json({ status: 200, message: message.resmessage.deletedrecord });
+        }
+    } catch (err) {
+        if (!err.statusCode) {
+            res.status(200)
+                .json({ status: 401, message: err.message, data: {} })
+        }
+        next(err);
+    }
+};
+
+/**
+ * change delivery type of order by id
+ *
+ * @body {orderId, deliveryType} to change type
+ */
+exports.changeDeliveryType = async (req, res, next) => {
+    try {
+        let {
+            orderId,
+            deliveryType
+        } = await req.body;
+        let change_delivery_type = await Order.update({
+            deliveryType
+        }, {
+            where: {
+                orderId: orderId,
+                status: [0, 1]
+            }
+        });
+        if (change_delivery_type != 0) {
+            logger.info(`Order delivery type changed to ${deliveryType} for order ${orderId}`);
+            res.status(200)
+                .json({ status: 200, message: message.resmessage.orderdeliverytype });
+        } else {
+            logger.info(`Order delivery type for order ${orderId} not changed`);
             res.status(200)
                 .json({ status: 200, message: message.resmessage.deletedrecord });
         }

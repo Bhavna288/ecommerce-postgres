@@ -15,8 +15,13 @@ exports.addProductCategory = async (req, res, next) => {
             description,
             createByIp
         } = await req.body;
+        let categoryIcon = "";
+        if (req.file) {
+            categoryIcon = req.file.filename;
+        }
         let insert_status = await ProductCategory.create({
             name,
+            categoryIcon,
             description,
             createByIp
         })
@@ -138,8 +143,13 @@ exports.updateProductCategory = async (req, res, next) => {
             description,
             updateByIp
         } = await req.body;
+        let categoryIcon = "";
+        if (req.file) {
+            categoryIcon = req.file.filename;
+        }
         let update_status = await ProductCategory.update({
             name,
+            categoryIcon,
             description,
             updateByIp
         }, {

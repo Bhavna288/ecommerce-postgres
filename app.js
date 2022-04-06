@@ -22,6 +22,7 @@ app.use((req, res, next) => {
     next();
 });
 require('./router.js')(app);
+app.use('/uploads', express.static('uploads'));
 
 app.get("/", (req, res) => {
     res.json({ message: "Welcome to this website" });
