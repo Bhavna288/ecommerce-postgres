@@ -55,4 +55,10 @@ exports.resmessage = {
     paymentdeleted: "Payment deleted successfully.",
     paymentfailed: "Payment failed! Please place the order again.",
     orderproductnotremoved: "Products not reduced.",
+    availablepincodeadded: "Pincode added successfully.",
+    availablepincodeupdated: "Pincode updated successfully.",
+    availablepincodestatus: "Pincode status changed successfully.",
+    availablepincodedeleted: "Pincode deleted successfully.",
+    pincodevalid: "Product deliverable on selected pincode.",
+    pincodeinvalid: "Product not deliverable on selected pincode.",
 }

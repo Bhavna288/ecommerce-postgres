@@ -14,6 +14,7 @@ const userCartRoutes = require('./routes/usercart.router');
 const userWishlistRoutes = require('./routes/userwishlist.router');
 const orderRoutes = require('./routes/order.router');
 const paymentRoutes = require('./routes/payment.router');
+const availablePincodes = require('./routes/availablepincode.router');
 
 module.exports = (app) => {
     app.use('/auth', API.validateKey, authRoutes);
@@ -29,4 +30,5 @@ module.exports = (app) => {
     app.use('/userwishlist', verifyToken, API.validateKey, userWishlistRoutes);
     app.use('/order', verifyToken, API.validateKey, orderRoutes);
     app.use('/payment', verifyToken, API.validateKey, paymentRoutes);
+    app.use('/pincode', verifyToken, API.validateKey, availablePincodes);
 };
