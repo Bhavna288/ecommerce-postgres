@@ -5,6 +5,7 @@ const message = require('../response_message/message');
 const Product = require('../models/product');
 const ProductDiscount = require('../models/productDiscount');
 const ProductCategory = require('../models/productCategory');
+const readXlsxFile = require("read-excel-file/node");
 
 /**
  * insert product data
@@ -21,10 +22,11 @@ exports.addProduct = async (req, res, next) => {
             categoryId,
             discountId,
             quantity,
+            images,
             deliveryDays,
             createByIp
         } = await req.body;
-        let images = [];
+        // let images = [];
         if (req.files) {
             for (const file of req.files)
                 images.push(file.filename);
@@ -51,6 +53,7 @@ exports.addProduct = async (req, res, next) => {
                     quantity,
                     discountedPrice,
                     deliveryDays,
+                    slug,
                     createByIp
                 });
             } else {
@@ -67,6 +70,7 @@ exports.addProduct = async (req, res, next) => {
                 discountId,
                 quantity,
                 deliveryDays,
+                slug,
                 createByIp
             });
         }
@@ -80,6 +84,78 @@ exports.addProduct = async (req, res, next) => {
                 .json({ status: 401, message: err.message, data: {} })
         }
         next(err);
+    }
+};
+
+/**
+ * 
+ * @body {excel file} req 
+ * @param {*} res 
+ * @param {*} next 
+ */
+
+exports.addProductExcel = async (req, res, next) => {
+    try {
+        if (req.file == undefined) {
+            return res.status(400).send("Please upload an excel file!");
+        }
+        let path = "./uploads/product/excel/" + req.file.filename;
+        readXlsxFile(path).then(async (rows) => {
+            // skip header
+            rows.shift();
+            let ProductData = [];
+            rows.forEach((row) => {
+                let product_data = {
+                    name: row[0],
+                    description: row[1],
+                    SKU: row[2],
+                    price: row[3],
+                    images: row[4],
+                    categoryId: row[5],
+                    discountId: row[6],
+                    quantity: row[7],
+                    deliveryDays: row[8],
+                    slug: row[9],
+                    createByIp: req.body.createByIp
+                };
+                ProductData.push(product_data);
+            });
+            for (var product_data of ProductData) {
+
+                if (product_data.discountId !== undefined) {
+                    let product_discount = await ProductDiscount.findOne({
+                        where: {
+                            status: 1,
+                            productDiscountId: product_data.discountId
+                        }
+                    });
+
+                    if (product_discount) {
+                        let discountedPrice = product_data.price - (product_data.price * product_discount.percentage / 100);
+                        product_data.discountedPrice = discountedPrice;
+                    }
+                }
+            }
+            Product.bulkCreate(ProductData).then(() => {
+                res.status(200).send({
+                    status: 200,
+                    message: "Uploaded the file successfully: " + req.file.originalname,
+                });
+            })
+                .catch((error) => {
+                    res.status(200).send({
+                        status: 401,
+                        message: "Fail to import data into database!",
+                        error: error.message,
+                    });
+                });
+
+        });
+    } catch (error) {
+        console.log(error);
+        res.status(500).send({
+            message: "Could not upload the file: " + req.file.originalname,
+        });
     }
 };
 
@@ -188,7 +264,8 @@ exports.getProductById = async (req, res, next) => {
             where: {
                 status: [0, 1],
                 productId: req.params.id
-            }
+            },
+            include: [{ all: true, nested: true }]
         });
         logger.info(`Product get data by id ${req.params.id} results: ${JSON.stringify(product_data)} `);
         if (product_data)
@@ -282,10 +359,12 @@ exports.updateProduct = async (req, res, next) => {
             categoryId,
             discountId,
             quantity,
+            images,
             deliveryDays,
+            slug,
             updateByIp
         } = await req.body;
-        let images = [];
+        // let images = [];
         if (req.files) {
             for (const file of req.files)
                 images.push(file.filename);
@@ -312,6 +391,7 @@ exports.updateProduct = async (req, res, next) => {
                     discountedPrice,
                     quantity,
                     deliveryDays,
+                    slug,
                     updateByIp
                 }, {
                     where: {

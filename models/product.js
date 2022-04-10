@@ -54,6 +54,10 @@ const Product = sequelize.define(table_name, {
         type: Sequelize.INTEGER,
         allowNull: false
     },
+    slug: {
+        type: Sequelize.STRING,
+        allowNull: true
+    },
     status: {
         type: Sequelize.INTEGER,
         allowNull: false,

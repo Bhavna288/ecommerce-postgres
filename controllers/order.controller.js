@@ -10,6 +10,7 @@ const User = require('../models/user');
 const UserAddress = require('../models/userAddress');
 const Stripe = require('stripe');
 const { addPayment } = require('./payment.controller');
+const { sendEmailForOrder } = require('../middleware/sendemail');
 
 /**
  * insert order data
@@ -132,6 +133,7 @@ exports.addOrder = async (req, res, next) => {
                     }
                     logger.info(`UserCart emptied for user: ${userId}`);
                     insert_status.setDataValue('payment', add_payment);
+                    await sendEmail(insert_status.orderId);
 
                     logger.info(`Order data inserted: ${JSON.stringify(req.body)} \n order items: ${insert_items}`);
                     res.status(200)
@@ -151,6 +153,52 @@ exports.addOrder = async (req, res, next) => {
         next(err);
     }
 };
+
+const sendEmail = async (orderId) => {
+    return new Promise(async (resolve, reject) => {
+        try {
+            let get_this_order = await Order.findOne({
+                where: {
+                    status: [0, 1],
+                    orderId: orderId
+                },
+                include: [{ all: true, nested: true }]
+            });
+
+            get_this_order = get_this_order.get({ plain: true });
+            let od = new Date(get_this_order.orderDate);
+            get_this_order.orderDate = od.getDate() + "-" + od.getMonth() + "-" + od.getFullYear();
+
+            if (get_this_order) {
+                let get_items = await OrderItems.findAll({
+                    where: {
+                        orderId: orderId,
+                        status: 1
+                    },
+                    include: {
+                        model: Product,
+                        as: 'product'
+                    }
+                });
+
+                get_items = get_items.map(item => {
+                    let edd = new Date(item.dataValues.expectedDeliveryDate);
+                    item.dataValues.expectedDeliveryDate = edd.getDate() + "-" + edd.getMonth() + "-" + edd.getFullYear();
+                    item.dataValues.product = item.dataValues.product.dataValues;
+                    return item.dataValues
+                });
+                console.log(get_items);
+
+                get_this_order['orderItems'] = get_items;
+            }
+
+            sendEmailForOrder(get_this_order);
+            return resolve(body);
+        } catch (err) {
+            return resolve({ status: 0, message: err });
+        }
+    });
+}
 
 /**
  * returns all users data
@@ -240,11 +288,14 @@ exports.getAllOrders = async (req, res, next) => {
                     where: {
                         orderId: order.orderId,
                         status: 1
+                    },
+                    include: {
+                        model: Product,
+                        as: 'product'
                     }
                 });
             }
         }
-        console.log(order_data);
 
         logger.info(`Order get data ${JSON.stringify(order_data)} `);
         res.status(200)

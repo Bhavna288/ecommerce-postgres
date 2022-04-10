@@ -1,9 +1,10 @@
 const express = require('express');
 const productController = require('../controllers/product.controller');
 const router = express.Router();
-const { uploadProductImage } = require('../middleware/upload')
+const { uploadProductImage, uploadProductfile } = require('../middleware/upload')
 
 router.post('/add', uploadProductImage, productController.addProduct); // save data
+router.post('/addexcel', uploadProductfile, productController.addProductExcel); // save data
 router.post('/getalldata', productController.getAllProducts); // get all data
 router.get('/getbyid/:id', productController.getProductById); // get data by id
 router.get('/getbycategoryid/:id', productController.getProductByCategoryId); // get data by category id

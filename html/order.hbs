@@ -1,0 +1,268 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial;
+            background: #fff;
+        }
+
+        td span.dot_class {
+            margin: 0;
+            color: #ed5a24;
+            border: 1px solid;
+        }
+
+        .font_fam {
+            font-family: system, "Segoe UI", Tahoma;
+        }
+
+        .td {
+            padding: 10px;
+            border-radius: 10px;
+            text-align: left;
+            width: 100px;
+            color: #fff;
+            background: gainsboro;
+        }
+
+        .tg {
+            border-collapse: collapse;
+            border-spacing: 0;
+            width: 400px !important;
+        }
+
+        .tg td {
+            border-color: black;
+            border-style: solid;
+            border-width: 1px;
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+            overflow: hidden;
+            padding: 3px 5px;
+            word-break: normal;
+        }
+
+        .tg th {
+            border-color: black;
+            border-style: solid;
+            border-width: 1px;
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+            font-weight: normal;
+            overflow: hidden;
+            padding: 3px 5px;
+            word-break: normal;
+        }
+
+        .tg .tg-oe15 {
+            background-color: #ffffff;
+            border-color: #ffffff;
+            text-align: left;
+            vertical-align: top
+        }
+
+        .tg .tg-u6gx {
+            background-color: #edebeb;
+            border-color: #ffffff;
+            font-weight: bold;
+            text-align: left;
+            padding: 10px 5px;
+            vertical-align: top
+        }
+
+        .tg .tg-hvao {
+            background-color: #edebeb;
+            border-color: #ffffff;
+            text-align: left;
+            padding: 10px 5px;
+            vertical-align: top
+        }
+
+        .tg .tg-3m6e {
+            background-color: #ffffff;
+            border-color: #ffffff;
+            font-weight: bold;
+            text-align: left;
+            vertical-align: top
+        }
+    </style>
+</head>
+
+<body>
+    <table width="780" border="0" cellspacing="0" cellpadding="0" align="center" style="border: 1px solid #ccc;">
+        <tr>
+            <td height="4" style="background: #fcba4b;"></td>
+        </tr>
+        <tr>
+            <td>
+                <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                    <tr>
+                        <td width="60">&nbsp;</td>
+                        <td>
+                            <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                                <tr>
+                                    <td>
+                                        <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                                            <tr>
+                                                <td colspan="2" height="40">&nbsp;</td>
+                                            </tr>
+                                            <tr>
+                                                <td style="font-size: 30px;color:#fcba4b">Order Confirmed!</td>
+                                                <td align="right" valign="middle"
+                                                    style="font-family:Arial; font-size:18px; color:#fcba4b; line-height:28px;">
+                                                    <br><a href="mailto:repdoor@gmail.com"
+                                                        style="font-family:Arial; color:#000; text-decoration:none;"></a>
+
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td colspan="2" height="40">&nbsp;</td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td height="33">&nbsp;</td>
+                                </tr>
+                                <tr>
+                                    <td style="font-family:Arial; font-size:14px; color:black; line-height:18px;">
+                                        <span>Dear Sir/Mam,<br><br>
+                                            Your order has been placed.
+                                            <br><br>
+                                            Following is your order details:
+                                            <br><br>
+                                        </span>
+                                        <table class="tg">
+                                            <thead>
+                                                <tr>
+                                                    <th class="tg-u6gx">Reference Number</th>
+                                                    <th class="tg-hvao">{{referenceNumber}}</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr>
+                                                    <td class="tg-3m6e">Order Date</td>
+                                                    <td class="tg-oe15">{{orderDate}}</td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="tg-3m6e">Total Price</td>
+                                                    <td class="tg-oe15">&#8377; {{totalPrice}}</td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="tg-3m6e">Delivery Type</td>
+                                                    <td class="tg-oe15">{{deliveryType}}</td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="tg-3m6e">Status</td>
+                                                    <td class="tg-oe15">{{deliveryStatus}}</td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="tg-3m6e" rowspan="5">Delivery Address</td>
+                                                    <td class="tg-oe15">{{address.fullName}} - {{address.addressType}}
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="tg-oe15">{{address.addressLine1}},</td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="tg-oe15">{{address.addressLine2}},</td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="tg-oe15">{{address.city.cityName}}, {{address.pincode}}
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="tg-oe15">{{address.state.stateName}},
+                                                        {{address.country.countryName}}</td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="tg-oe15">{{address.mobilenumber}}</td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="tg-3m6e"></td>
+                                                    <td class="tg-oe15"></td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="tg-3m6e">Payment mode</td>
+                                                    <td class="tg-oe15">{{payment.mode}}</td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="tg-3m6e">Paid amount</td>
+                                                    <td class="tg-oe15">&#8377; {{payment.amount}}</td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="tg-3m6e"></td>
+                                                    <td class="tg-oe15"></td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="tg-3m6e" rowspan={{get_row_span orderItems}}>Order items
+                                                    </td>
+                                                </tr>
+                                                {{#orderItems}}
+                                                {{#product}}
+                                                <tr>
+                                                    <td class="tg-oe15">Product name: {{name}}</td>
+                                                </tr>
+                                                {{/product}}
+                                                <tr>
+                                                    <td class="tg-oe15">Quantity: {{quantity}}</td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="tg-oe15">Expected delivery date:
+                                                        {{expectedDeliveryDate}}</td>
+                                                </tr>
+
+                                                {{/orderItems}}
+                                            </tbody>
+                                        </table>
+
+
+                                        <br><br>
+                                        <b>Best Regards,<br>
+                                            Team {company name}</b>
+
+
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td height="35">&nbsp;</td>
+                                </tr>
+
+                                <tr>
+                                    <td height="55">&nbsp;</td>
+                                </tr>
+
+                            </table>
+                        </td>
+                        <td width="60">&nbsp;</td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+        <tr>
+            <td height="40" style="background:#fcba4b;">
+
+                <span style="padding-left: 60px;"> <a href="" style="color:#fff;text-decoration: none;"> </a> </span>
+
+                <!--span style='padding-right: 60px;float: right;color: #fff;'>
+                      <i class="fa fa-facebook-official" aria-hidden="true"></i>
+                      <i class="fa fa-twitter-square" aria-hidden="true"></i>
+                      <i class="fa fa-linkedin-square" aria-hidden="true"></i>
+                      <i class="fa fa-google-plus-square" aria-hidden="true"></i>
+                    </span-->
+
+            </td>
+        </tr>
+    </table>
+</body>
+
+</html>

@@ -1,5 +1,6 @@
 const express = require('express');
 const orderController = require('../controllers/order.controller');
+const { sendEmailForOrder } = require('../middleware/sendemail');
 const router = express.Router();
 
 router.post('/add', orderController.addOrder); // save data

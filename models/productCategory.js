@@ -18,7 +18,7 @@ const ProductCategory = sequelize.define(table_name, {
     },
     description: {
         type: Sequelize.STRING,
-        allowNull: false
+        allowNull: true
     },
     status: {
         type: Sequelize.INTEGER,

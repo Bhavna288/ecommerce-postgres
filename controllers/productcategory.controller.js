@@ -13,9 +13,9 @@ exports.addProductCategory = async (req, res, next) => {
         let {
             name,
             description,
+            categoryIcon,
             createByIp
         } = await req.body;
-        let categoryIcon = "";
         if (req.file) {
             categoryIcon = req.file.filename;
         }
@@ -140,10 +140,10 @@ exports.updateProductCategory = async (req, res, next) => {
         let {
             productCategoryId,
             name,
+            categoryIcon,
             description,
             updateByIp
         } = await req.body;
-        let categoryIcon = "";
         if (req.file) {
             categoryIcon = req.file.filename;
         }
