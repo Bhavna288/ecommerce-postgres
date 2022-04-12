@@ -3,6 +3,7 @@ const logger = require('../config/logger');
 const message = require('../response_message/message');
 const bcrypt = require('bcrypt');
 const User = require('../models/user');
+const UserAddress = require('../models/userAddress');
 
 /**
  * insert user data
@@ -100,6 +101,20 @@ exports.getAllUsers = async (req, res, next) => {
             });
         }
 
+        user_data = user_data.map(item => item.dataValues);
+
+        for (var user of user_data) {
+            let user_address = await UserAddress.findAll({
+                where: {
+                    status: [0, 1],
+                    userId: user.userId
+                }
+            });
+
+            user_address = user_address.map(item => item.dataValues);
+            user['address'] = user_address;
+        }
+
         logger.info(`User get data ${JSON.stringify(user_data)} `);
         res.status(200)
             .json({ status: 200, data: user_data, totalcount: totalcount });
@@ -126,10 +141,22 @@ exports.getUserById = async (req, res, next) => {
                 userId: req.params.id
             }
         });
+
         logger.info(`User get data by id ${req.params.id} results: ${JSON.stringify(user_data)} `);
-        if (user_data)
+        if (user_data) {
+            user_data = user_data.get({ plain: true });
+            let user_address = await UserAddress.findAll({
+                where: {
+                    status: [0, 1],
+                    userId: req.params.id
+                }
+            });
+
+            user_address = user_address.map(item => item.dataValues);
+            user_data['address'] = user_address;
             res.status(200)
                 .json({ status: 200, data: user_data });
+        }
         else
             res.status(200)
                 .json({ status: 200, data: {}, message: message.resmessage.deletedrecord });

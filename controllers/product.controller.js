@@ -24,14 +24,16 @@ exports.addProduct = async (req, res, next) => {
             quantity,
             images,
             deliveryDays,
+            slug,
             createByIp
         } = await req.body;
         // let images = [];
         if (req.files) {
+            images = [];
             for (const file of req.files)
                 images.push(file.filename);
         }
-        let insert_status;
+        let insert_status, discountedPrice = null;
         if (discountId) {
             let product_discount = await ProductDiscount.findOne({
                 where: {
@@ -41,39 +43,25 @@ exports.addProduct = async (req, res, next) => {
             });
 
             if (product_discount) {
-                let discountedPrice = price - (price * product_discount.percentage / 100);
-                insert_status = await Product.create({
-                    name,
-                    description,
-                    SKU,
-                    price,
-                    images,
-                    categoryId,
-                    discountId,
-                    quantity,
-                    discountedPrice,
-                    deliveryDays,
-                    slug,
-                    createByIp
-                });
+                discountedPrice = price - (price * product_discount.percentage / 100);
             } else {
                 return res.json({ status: 200, message: message.resmessage.productdiscountnotexists, data: {} })
             }
-        } else {
-            insert_status = await Product.create({
-                name,
-                description,
-                SKU,
-                price,
-                images,
-                categoryId,
-                discountId,
-                quantity,
-                deliveryDays,
-                slug,
-                createByIp
-            });
         }
+        insert_status = await Product.create({
+            name,
+            description,
+            SKU,
+            price,
+            images,
+            categoryId,
+            discountId,
+            quantity,
+            discountedPrice,
+            deliveryDays,
+            slug,
+            createByIp
+        });
 
         logger.info(`Product data inserted: ${JSON.stringify(req.body)}`);
         res.status(200)
@@ -177,6 +165,7 @@ exports.getAllProducts = async (req, res, next) => {
                         { name: { [Sequelize.Op.iLike]: '%' + searchQuery + '%' } },
                         { description: { [Sequelize.Op.iLike]: '%' + searchQuery + '%' } },
                         { SKU: { [Sequelize.Op.iLike]: '%' + searchQuery + '%' } },
+                        { slug: { [Sequelize.Op.iLike]: '%' + searchQuery + '%' } },
                         { '$category.name$': { [Sequelize.Op.iLike]: '%' + searchQuery + '%' } },
                         { '$category.description$': { [Sequelize.Op.iLike]: '%' + searchQuery + '%' } },
                         { '$discount.name$': { [Sequelize.Op.iLike]: '%' + searchQuery + '%' } },
@@ -366,6 +355,7 @@ exports.updateProduct = async (req, res, next) => {
         } = await req.body;
         // let images = [];
         if (req.files) {
+            images = [];
             for (const file of req.files)
                 images.push(file.filename);
         }
@@ -412,6 +402,7 @@ exports.updateProduct = async (req, res, next) => {
                 discountId,
                 quantity,
                 deliveryDays,
+                slug,
                 updateByIp
             }, {
                 where: {
